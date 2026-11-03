@@ -38,3 +38,6 @@ bridge/.token
 # Test artifacts
 coverage/
 *.tmp
+
+# WorkBuddy workspace memory (internal)
+.workbuddy-ai/
