@@ -56,7 +56,9 @@
 }
 
 #awt-panel.awt-collapsed .awt-btn:not([data-awt="collapse"]),
-#awt-panel.awt-collapsed .awt-session {
+#awt-panel.awt-collapsed .awt-actions,
+#awt-panel.awt-collapsed .awt-session,
+#awt-panel.awt-collapsed .awt-mode {
   display: none;
 }
 
@@ -64,13 +66,27 @@
   flex: 1;
 }
 
+#awt-panel.awt-collapsed .awt-head {
+  border-bottom: 1px solid #3a404b;
+}
+
 #awt-panel .awt-head {
   position: relative;
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
   gap: 6px;
   padding: 6px 34px 6px 8px;
+  background: #1e222a;
+}
+
+/* Actions get their own row so the header never wraps into a ragged line. */
+#awt-panel .awt-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 8px 7px;
   background: #1e222a;
   border-bottom: 1px solid #3a404b;
 }
@@ -114,6 +130,15 @@
   font-size: 11px;
   padding: 2px 4px;
   max-width: 130px;
+}
+
+#awt-panel .awt-mode {
+  max-width: 78px;
+}
+
+#awt-panel .awt-prompt-btn {
+  border-color: #4a5568;
+  color: #b9c6e0;
 }
 
 #awt-panel .awt-btn {

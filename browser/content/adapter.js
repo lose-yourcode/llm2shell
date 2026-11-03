@@ -42,8 +42,16 @@
     sessions: [],
     lastResult: null,
     outputText: '',
+    // 'append' keeps whatever is already in the AI box and adds the new text
+    // below it; 'replace' overwrites the box. Append is the default because a
+    // multi-step conversation produces several results that the model needs
+    // to see together.
+    insertMode: 'append',
+    prompt: '',
     panel: null
   };
+
+  var APPEND_SEPARATOR = '\n\n';
 
   // ------------------------------------------------------------------ utils
   function normLang(raw) {
@@ -143,23 +151,53 @@
     el.dispatchEvent(new Event('change', { bubbles: true }));
   }
 
-  function fillInput(text) {
-    var el = findInput();
-    if (!el) return false;
-    el.focus();
+  // Read what the user already has in the AI box. ChatGPT/Gemini use a
+  // contenteditable editor, where innerText preserves the paragraph breaks that
+  // textContent drops.
+  function readInput(el) {
+    if (!el) return '';
+    if (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT') return el.value || '';
+    var t = el.innerText;
+    if (typeof t !== 'string') t = el.textContent || '';
+    return t;
+  }
+
+  // Build the final string according to the insert mode. Appending never
+  // destroys what is already typed; it only adds below it.
+  function composeInsert(text, existing, mode) {
+    var body = String(text == null ? '' : text);
+    if (mode === 'replace') return body;
+    var current = String(existing == null ? '' : existing);
+    if (!current.trim()) return body;
+    return current.replace(/\s+$/, '') + APPEND_SEPARATOR + body;
+  }
+
+  function applyInputValue(el, value) {
     if (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT') {
-      setNativeValue(el, text);
-      try { el.setSelectionRange(text.length, text.length); } catch (e) {}
-    } else {
-      try {
-        document.execCommand('selectAll', false, null);
-        document.execCommand('insertText', false, text);
-      } catch (e) {
-        el.textContent = text;
-      }
-      el.dispatchEvent(new Event('input', { bubbles: true }));
+      setNativeValue(el, value);
+      try { el.setSelectionRange(value.length, value.length); } catch (e) {}
+      return true;
     }
+    // contenteditable (ProseMirror / rich-textarea): replace the whole content
+    // so the caret ends up at the bottom of the appended text.
+    try {
+      document.execCommand('selectAll', false, null);
+      document.execCommand('insertText', false, value);
+    } catch (e) {
+      el.textContent = value;
+    }
+    el.dispatchEvent(new Event('input', { bubbles: true }));
     return true;
+  }
+
+  function fillInput(text, mode) {
+    var el = findInput();
+    if (!el) return { ok: false, reason: 'no-input', mode: mode || state.insertMode };
+    var useMode = mode || state.insertMode;
+    el.focus();
+    var finalText = composeInsert(text, readInput(el), useMode);
+    applyInputValue(el, finalText);
+    return { ok: true, mode: useMode, length: finalText.length };
   }
 
   // ------------------------------------------------------------------ panel
@@ -176,13 +214,20 @@
         '<span class="awt-dot" title="Bridge status"></span>' +
         '<span class="awt-title">LLM2Shell</span>' +
         '<select class="awt-session" title="Session"><option>default</option></select>' +
+        '<select class="awt-mode" title="Append below what is already typed, or replace it">' +
+          '<option value="append">Append</option>' +
+          '<option value="replace">Replace</option>' +
+        '</select>' +
         '<span class="awt-spacer"></span>' +
+        '<button class="awt-btn awt-icon awt-collapse" data-awt="collapse" title="Collapse / expand">–</button>' +
+      '</div>' +
+      '<div class="awt-actions">' +
+        '<button class="awt-btn awt-prompt-btn" data-awt="prompt" title="Put the formatting prompt into the AI input">Prompt</button>' +
         '<button class="awt-btn" data-awt="ssh" title="Connect a remote host">+ SSH</button>' +
         '<button class="awt-btn" data-awt="send" title="Put the last output into the AI input">Send Output</button>' +
         '<button class="awt-btn" data-awt="sendsel" title="Send the selected text">Send Selected</button>' +
         '<button class="awt-btn" data-awt="copy" title="Copy the output">Copy</button>' +
         '<button class="awt-btn" data-awt="clear" title="Clear the panel">Clear</button>' +
-        '<button class="awt-btn awt-icon awt-collapse" data-awt="collapse" title="Collapse / expand">–</button>' +
       '</div>' +
       '<div class="awt-sshform" style="display:none">' +
         '<input class="awt-ssh-host" placeholder="host" spellcheck="false" />' +
@@ -204,6 +249,14 @@
     panel.querySelector('.awt-session').addEventListener('change', function (e) {
       state.sessionId = e.target.value;
     });
+
+    var modeSel = panel.querySelector('.awt-mode');
+    if (modeSel) {
+      modeSel.value = state.insertMode;
+      modeSel.addEventListener('change', function (e) {
+        setInsertMode(e.target.value);
+      });
+    }
 
     var cmdInput = panel.querySelector('.awt-cmd');
     if (cmdInput) {
@@ -240,6 +293,7 @@
       var action = btn.getAttribute('data-awt');
       if (action === 'send') sendToAI('output');
       else if (action === 'sendsel') sendToAI('selected');
+      else if (action === 'prompt') sendPrompt();
       else if (action === 'copy') copyOutput();
       else if (action === 'clear') clearPanel();
       else if (action === 'collapse') setCollapsed(!panel.classList.contains('awt-collapsed'));
@@ -376,9 +430,10 @@
 
     var t = truncate(redact(body));
     var header = '[LLM2Shell] session=' + rec.sessionId + ' exit=' + rec.exitCode + ' status=' + rec.status;
-    var text = mode === 'cmdout'
-      ? header + '\n$ ' + rec.command + '\n\n' + t.text
-      : header + '\n\n' + t.text;
+    // The command line is always included: in append mode several results pile
+    // up in the input box, and the model needs to know which command produced
+    // which output.
+    var text = header + '\n$ ' + rec.command + '\n\n' + t.text;
     if (t.truncated) text += '\n\n…[output truncated by LLM2Shell]';
     return text;
   }
@@ -389,11 +444,73 @@
       appendOut('\n[LLM2Shell] Nothing to send yet — run a command first.\n', 'stderr');
       return;
     }
-    if (fillInput(text)) {
-      appendOut('\n[LLM2Shell] Placed the result in the AI input box. Review and send.\n', 'stderr');
-    } else {
+    var res = fillInput(text);
+    if (!res.ok) {
       appendOut('\n[LLM2Shell] Could not find the AI input box.\n', 'stderr');
+      return;
     }
+    appendOut(
+      '\n[LLM2Shell] ' + (res.mode === 'append' ? 'Appended to' : 'Replaced') +
+        ' the AI input box (' + res.length + ' chars). Review and send.\n',
+      'stderr'
+    );
+  }
+
+  // ------------------------------------------------------------- insert mode
+  function setInsertMode(mode, persist) {
+    state.insertMode = mode === 'replace' ? 'replace' : 'append';
+    if (state.panel) {
+      var sel = state.panel.querySelector('.awt-mode');
+      if (sel && sel.value !== state.insertMode) sel.value = state.insertMode;
+    }
+    if (persist !== false) {
+      try { chrome.storage.local.set({ awtInsertMode: state.insertMode }); } catch (e) {}
+    }
+    return state.insertMode;
+  }
+
+  function loadInsertMode(done) {
+    try {
+      chrome.storage.local.get({ awtInsertMode: 'append' }, function (cfg) {
+        if (cfg && cfg.awtInsertMode) setInsertMode(cfg.awtInsertMode, false);
+        if (typeof done === 'function') done(state.insertMode);
+      });
+    } catch (e) {
+      if (typeof done === 'function') done(state.insertMode);
+    }
+  }
+
+  // ----------------------------------------------------------- prompt button
+  function promptText() {
+    if (state.config.prompt) return state.config.prompt;
+    if (typeof window.LLM2ShellPrompt === 'string' && window.LLM2ShellPrompt) {
+      return window.LLM2ShellPrompt;
+    }
+    return typeof window.LLM2ShellPromptShort === 'string'
+      ? window.LLM2ShellPromptShort
+      : 'Put each runnable command batch in a fenced block tagged `powershell` / `bash` / `sh`.';
+  }
+
+  function sendPrompt() {
+    expandPanel();
+    var text = promptText();
+    // Clicking twice in append mode would stack two copies of the prompt.
+    var probe = text.slice(0, 40);
+    var el = findInput();
+    if (el && state.insertMode === 'append' && readInput(el).indexOf(probe) !== -1) {
+      appendOut('\n[LLM2Shell] The prompt is already in the input box.\n', 'stderr');
+      return;
+    }
+    var res = fillInput(text);
+    if (!res.ok) {
+      appendOut('\n[LLM2Shell] Could not find the AI input box.\n', 'stderr');
+      return;
+    }
+    appendOut(
+      '\n[LLM2Shell] ' + (res.mode === 'append' ? 'Appended' : 'Inserted') +
+        ' the formatting prompt. Send it once per conversation.\n',
+      'stderr'
+    );
   }
 
   // ---------------------------------------------------------------- SSH form
@@ -574,6 +691,7 @@
       return;
     }
     buildPanel();
+    loadInsertMode();
 
     try {
       chrome.runtime.onMessage.addListener(onMessage);

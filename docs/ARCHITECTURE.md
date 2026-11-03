@@ -19,7 +19,8 @@ Three cooperating pieces:
 │      ├─ classify language (class/attr + content heuristic)                  │
 │      ├─ inject Run / Run All / Copy / Select Terminal                       │
 │      ├─ floating panel: streaming output, manual input, Send Output         │
-│      └─ fillInput(text) → AI input box                                      │
+│      ├─ Prompt button → prompt.js text into the AI box                      │
+│      └─ insertText(text, append|replace) → AI input box                     │
 │                                                                             │
 │  service worker: browser/background.js                                      │
 │      ├─ WebSocket client to ws://127.0.0.1:8765                             │
@@ -53,8 +54,9 @@ Three cooperating pieces:
 7. Each output chunk → `{type:'output', reqId, stream, data}` → service worker → the source tab →
    panel appends it live.
 8. On exit → `{type:'result', reqId, exitCode, stdout, stderr, status, ...}`.
-9. User clicks **Send Output** → the panel builds a redacted/truncated payload and calls
-   `fillInput(text)` on the AI page.
+9. User clicks **Send Output** → the panel builds a redacted/truncated payload and inserts it
+   into the AI page: `append` (default) puts it below whatever is already typed, `replace`
+   overwrites. Both go through `composeInsert()` + `applyInputValue()`.
 10. User reviews and sends. Loop closed.
 
 ## 4. Protocol
@@ -141,7 +143,8 @@ exposes passwords or keys in `publicInfo()`.
 |---|---|
 | `browser/manifest.json` | MV3 manifest, content-script matches, options page. |
 | `browser/background.js` | WebSocket lifecycle, outbox, tab routing, config. |
-| `browser/content/adapter.js` | Detection, toolbar, panel, input fill, messaging. |
+| `browser/content/adapter.js` | Detection, toolbar, panel, insert (append/replace), messaging. |
+| `browser/content/prompt.js` | Text injected by the Prompt button (editable, no rebuild). |
 | `browser/content/{chatgpt,gemini}.js` | Site input-selector profiles. |
 | `browser/options.html/js` | Bridge URL + token storage. |
 | `bridge/server.js` | HTTP + WS server, auth, protocol, execution. |

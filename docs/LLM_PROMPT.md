@@ -4,6 +4,14 @@ LLM2Shell detects shell code blocks and adds **Run** buttons. Detection is relia
 tags its blocks with a real shell language. Give the model the prompt below once per conversation
 (or paste it into a "Custom instructions" / system prompt).
 
+> **You do not have to copy-paste it.** The floating panel has a **Prompt** button: one click puts
+> the text below into the AI input box, and you press Send. The text lives in
+> [`browser/content/prompt.js`](../browser/content/prompt.js), so you can edit it (for example to
+> write a Chinese version) and reload the extension — no rebuild needed.
+>
+> The button obeys the **Append / Replace** selector, so on a fresh conversation you can leave it
+> on `Append` and add extra instructions before or after the prompt without losing them.
+
 ---
 
 ## A. Ready-to-paste prompt (recommended)

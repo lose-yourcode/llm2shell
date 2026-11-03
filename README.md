@@ -73,13 +73,36 @@ Keep this window open.
 ### 3. Use it
 
 1. Open <https://chatgpt.com> or <https://gemini.google.com> and log in normally.
-2. Ask: *"Give me a PowerShell command to list the 5 largest files in my Downloads folder."*
-3. The code block now has **Run / Run All / Copy / Select Terminal**.
-4. Click **Run** → output streams into the floating panel (bottom-right).
-5. Click **Send Output** → the result is placed in the AI input box. Review and send.
-6. You can also type a command directly in the panel's `$` input and press Enter.
-7. Drag the **top-left grip** to resize the panel; click **– / +** (or double-click the title)
+2. Click **Prompt** once per conversation — the formatting prompt is placed in the input box;
+   send it so the model tags every command block correctly. (Skip it and detection falls back to
+   heuristics; see [`docs/LLM_PROMPT.md`](docs/LLM_PROMPT.md).)
+3. Ask: *"Give me a PowerShell command to list the 5 largest files in my Downloads folder."*
+4. The code block now has **Run / Run All / Copy / Select Terminal**.
+5. Click **Run** → output streams into the floating panel (bottom-right).
+6. Click **Send Output** → the result is placed in the AI input box. Review and send.
+7. You can also type a command directly in the panel's `$` input and press Enter.
+8. Drag the **top-left grip** to resize the panel; click **– / +** (or double-click the title)
    to collapse and restore it.
+
+**Append vs Replace.** The `Append` / `Replace` selector next to the session picker controls what
+happens to text already in the AI box. `Append` (default) adds the new result *below* what is
+already there, so several commands' outputs accumulate into one message; `Replace` overwrites the
+box. The choice is remembered across reloads.
+
+---
+
+## Prompt button
+
+The panel's **Prompt** button injects a ready-to-send prompt that tells the model to put each
+runnable batch in a fenced block tagged `powershell` / `bash` / `sh`, one batch per block, no `$`
+prompts inside, and never to run anything itself. That makes block detection exact instead of
+heuristic.
+
+- Source of the text: [`browser/content/prompt.js`](browser/content/prompt.js) — edit it to
+  customise (e.g. a Chinese version), then reload the extension.
+- Same text, with the reasoning and an example exchange:
+  [`docs/LLM_PROMPT.md`](docs/LLM_PROMPT.md).
+
 
 ---
 
@@ -145,7 +168,8 @@ For reliable detection, tell the AI how to format commands. Ready-to-paste promp
 browser/                 Chrome/Edge extension (MV3)
   manifest.json
   background.js          service worker: WebSocket client + routing
-  content/adapter.js     detection, panel, fillInput, messaging
+  content/adapter.js     detection, panel, insert (append/replace), messaging
+  content/prompt.js      text injected by the Prompt button (editable)
   content/chatgpt.js     ChatGPT profile (input selectors)
   content/gemini.js      Gemini profile
   panel.css              floating panel + run-button styles
@@ -159,7 +183,7 @@ src/
   bridge/sessionStore.js       logical sessions + cd tracking
   bridge/sshSession.js         persistent ssh2 connection (connect once, exec per command)
 scripts/run-tests.js     test launcher (workspace-local temp dir)
-test/                    Vitest suite (58 tests)
+test/                    Vitest suite (62 tests)
 docs/                    architecture, feasibility, test report, known issues, LLM prompt
 electron/ + renderer/    OPTIONAL legacy desktop shell (not the primary path)
 ```
@@ -178,7 +202,7 @@ electron/ + renderer/    OPTIONAL legacy desktop shell (not the primary path)
 
 ## Verification status
 
-- ✅ **58 automated tests pass** (10 files), including **real PowerShell execution**, a
+- ✅ **62 automated tests pass** (10 files), including **real PowerShell execution**, a
   **WebSocket end-to-end Bridge test** (hello → run → output → result with exact exit codes),
   a **jsdom DOM test** for toolbar injection + input refill + panel resize/collapse, and
   **persistent SSH** tests.

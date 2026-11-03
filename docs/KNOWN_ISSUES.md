@@ -23,6 +23,16 @@ Severity: 🔴 blocks a core acceptance item · 🟠 degrades experience · 🟡
 | 8 | The panel is fixed bottom-right; some sites' CSS could overlap it. | 🟡 | `z-index: 2147483647`; drag the top-left grip to resize (320×160 up to the viewport), click `–` (or double-click the title) to collapse and `+` to restore. |
 | 9 | Concurrent runs in the same tab share one panel; output can interleave. | 🟡 | Run one command at a time; a future version can key panels by `reqId`. |
 
+**Insert mode (Append / Replace).** Appending works by reading the editor's current text
+(`innerText` for `contenteditable`, `value` for `textarea`), joining the new block below it, and
+writing the whole string back. On ChatGPT/Gemini that round-trip is normally lossless, but two
+things can still bite:
+
+- Rich formatting already in the box (bold, lists, attachments) is flattened to plain text when
+  the value is rewritten. Plain typed text and pasted output are unaffected.
+- If a site's editor reports an empty `innerText` while showing a placeholder, the first append
+  looks like a replace. Switching to `Replace` explicitly, or typing one character first, avoids it.
+
 ## Bridge / security
 
 | # | Issue | Severity | Notes |

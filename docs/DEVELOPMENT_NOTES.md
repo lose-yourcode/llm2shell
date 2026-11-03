@@ -3,14 +3,17 @@
 ## What is implemented
 
 - MV3 extension for ChatGPT + Gemini: detection, Run toolbar, floating output panel, manual
-  command input, Send Output / Send Selected / Copy.
+  command input, Send Output / Send Selected / Copy, and a **Prompt** button that injects the
+  formatting prompt (`browser/content/prompt.js`).
+- **Append / Replace insert mode**: results go below whatever is already typed (default, persisted
+  in `chrome.storage.local`) so multi-command transcripts accumulate in one message.
 - Service worker: WebSocket client, token handshake, auto-reconnect, outbox, per-tab routing.
 - Local Bridge: HTTP health, WebSocket server, origin check, token auth, JSON protocol.
 - Execution: accurate `child_process` capture (separate stdout/stderr, exact exit code).
 - Logical sessions with `cd` tracking.
 - **Persistent SSH sessions** via `ssh2`: one connection per session, `exec` per command, tracked
   cwd, `+ SSH` form in the panel.
-- 58 automated tests, including real shell execution, a WebSocket end-to-end run, a jsdom
+- 62 automated tests, including real shell execution, a WebSocket end-to-end run, a jsdom
   DOM test for the adapter, and persistent SSH session tests.
 
 ## Highest-value next work
@@ -35,7 +38,7 @@
    });
    ```
 2. Add a `content_scripts` entry in `browser/manifest.json` with the site's match pattern and
-   `["content/adapter.js", "content/<site>.js"]`.
+   `["content/prompt.js", "content/adapter.js", "content/<site>.js"]`.
 3. Add the host to `host_permissions`.
 
 ### Add a Bridge backend (SSH, PTY)
