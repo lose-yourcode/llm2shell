@@ -19,10 +19,16 @@
   truncated block produces a clear message instead of a raw parser dump.
 - Block text is re-read from the DOM **when Run is clicked**, not when the toolbar was injected —
   streaming replies otherwise execute a half-copied command.
+- **Toolbar placement is layout-aware.** ChatGPT renders the code body as `display:flex`, so a
+  plain sibling toolbar was squeezed by the wide `<pre>` until each button wrapped one letter per
+  line. `placeToolbar()` now claims a full-width line (`flex: 0 0 100%` + `flex-wrap: wrap` on the
+  row), and falls back to inserting *above* the row when a gutter shares it. Toolbar CSS pins
+  `flex: 0 0 auto`, `white-space: nowrap` and `writing-mode: horizontal-tb` so host styles cannot
+  re-break it.
 - Logical sessions with `cd` tracking.
 - **Persistent SSH sessions** via `ssh2`: one connection per session, `exec` per command, tracked
   cwd, `+ SSH` form in the panel.
-- 96 automated tests, including real shell execution, a WebSocket end-to-end run, a jsdom
+- 98 automated tests, including real shell execution, a WebSocket end-to-end run, a jsdom
   DOM test for the adapter, and persistent SSH session tests.
 
 ## Highest-value next work

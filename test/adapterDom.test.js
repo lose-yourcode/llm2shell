@@ -267,6 +267,52 @@ describe('browser adapter DOM behaviour', () => {
     expect(opened).toContain('https://example.test/new');
   });
 
+  it('gives the toolbar a full-width line inside a flex-row code container', async () => {
+    // ChatGPT lays the code body out as `display:flex`. A plain sibling would be
+    // squeezed by the wide <pre> until the buttons wrap one letter per line.
+    const row = document.createElement('div');
+    row.style.display = 'flex';
+    const pre = document.createElement('pre');
+    const code = document.createElement('code');
+    code.className = 'language-powershell';
+    code.textContent = 'Get-Process';
+    pre.appendChild(code);
+    row.appendChild(pre);
+    document.body.appendChild(row);
+    await new Promise((r) => setTimeout(r, 0));
+
+    const bar = Array.from(row.children).find((el) => el.classList.contains('awt-toolbar'));
+    expect(bar).toBeTruthy();
+    expect(row.style.flexWrap).toBe('wrap');
+    expect(bar.style.flex).toBe('0 0 100%');
+    expect(bar.nextElementSibling).toBe(pre);
+  });
+
+  it('puts the toolbar above a flex row that has other children', async () => {
+    const card = document.createElement('div');
+    const row = document.createElement('div');
+    row.style.display = 'flex';
+    const gutter = document.createElement('div');
+    gutter.textContent = '1';
+    const pre = document.createElement('pre');
+    const code = document.createElement('code');
+    code.className = 'language-bash';
+    code.textContent = 'ls -la';
+    pre.appendChild(code);
+    row.appendChild(gutter);
+    row.appendChild(pre);
+    card.appendChild(row);
+    document.body.appendChild(card);
+    await new Promise((r) => setTimeout(r, 0));
+
+    const bar = Array.from(card.children).find((el) => el.classList.contains('awt-toolbar'));
+    expect(bar).toBeTruthy();
+    expect(bar.nextElementSibling).toBe(row);
+    // The gutter keeps sharing the row with the code.
+    expect(row.contains(gutter)).toBe(true);
+    expect(row.contains(pre)).toBe(true);
+  });
+
   it('collapses and restores the panel, keeping the collapse button usable', () => {
     const panel = document.getElementById('awt-panel');
     const btn = panel.querySelector('button[data-awt="collapse"]');

@@ -221,7 +221,7 @@ src/
   bridge/sshSession.js         persistent ssh2 connection (connect once, exec per command)
   bridge/sshConfig.js          ~/.ssh/config alias -> host/user/port/key
 scripts/run-tests.js     test launcher (workspace-local temp dir)
-test/                    Vitest suite (96 tests)
+test/                    Vitest suite (98 tests)
 docs/                    architecture, feasibility, test report, known issues, LLM prompt
 electron/ + renderer/    OPTIONAL legacy desktop shell (not the primary path)
 ```
@@ -240,7 +240,7 @@ electron/ + renderer/    OPTIONAL legacy desktop shell (not the primary path)
 
 ## Verification status
 
-- ✅ **96 automated tests pass** (12 files), including **real PowerShell execution**, a
+- ✅ **98 automated tests pass** (12 files), including **real PowerShell execution**, a
   **WebSocket end-to-end Bridge test** (hello → run → output → result with exact exit codes),
   a **jsdom DOM test** for toolbar injection + input refill + panel resize/collapse, and
   **persistent SSH** tests.

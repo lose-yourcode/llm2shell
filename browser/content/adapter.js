@@ -760,6 +760,56 @@
     }
   }
 
+  // ChatGPT and Gemini often lay a code block out as a flex row. Dropped in as a
+  // plain sibling, the toolbar becomes a flex item that the wide <pre> squeezes
+  // down to a few pixels — the buttons then wrap one letter per line. Give the
+  // toolbar a full-width line of its own instead of letting it share the row.
+  function placeToolbar(bar, pre) {
+    var parent = pre.parentNode;
+    if (!parent || parent.nodeType !== 1) return;
+
+    var cs = null;
+    try { cs = window.getComputedStyle(parent); } catch (e) {}
+    var disp = cs ? String(cs.display || '') : '';
+
+    if (disp === 'flex' || disp === 'inline-flex') {
+      var dir = String((cs && cs.flexDirection) || 'row').toLowerCase();
+      if (dir.indexOf('column') === -1) {
+        var others = 0;
+        for (var i = 0; i < parent.children.length; i++) {
+          if (parent.children[i] !== pre) others++;
+        }
+        if (others === 0) {
+          // Only the code block lives in this row: allow wrapping and claim a line.
+          try { parent.style.flexWrap = 'wrap'; } catch (e) {}
+          bar.style.flex = '0 0 100%';
+          bar.style.width = '100%';
+        } else if (parent.parentNode) {
+          // Something else shares the row (a gutter, a line-number column) —
+          // put the toolbar above the whole row rather than reflowing it.
+          parent.parentNode.insertBefore(bar, parent);
+          return;
+        }
+      }
+    } else if (disp === 'grid' || disp === 'inline-grid') {
+      bar.style.gridColumn = '1 / -1';
+    }
+
+    // Code cards clip at a rounded corner; line the toolbar up with the code
+    // text so the label is not shaved off by the curve.
+    var pad = 0;
+    try {
+      var pcs = window.getComputedStyle(pre);
+      pad = parseFloat(pcs.paddingLeft) || 0;
+    } catch (e) {}
+    if (pad > 0) {
+      bar.style.paddingLeft = pad + 'px';
+      bar.style.paddingRight = pad + 'px';
+    }
+
+    parent.insertBefore(bar, pre);
+  }
+
   function processPre(pre) {
     if (!pre || pre.getAttribute('data-awt') === '1') return;
     var code = pre.querySelector('code') || pre;
@@ -769,7 +819,7 @@
     if (!shouldRun(lang, text)) return;
     pre.setAttribute('data-awt', '1');
     var bar = buildToolbar(pre, lang);
-    if (pre.parentNode) pre.parentNode.insertBefore(bar, pre);
+    placeToolbar(bar, pre);
   }
 
   function scan(root) {

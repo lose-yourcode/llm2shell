@@ -282,21 +282,48 @@
   border-color: #4f8cff;
 }
 
-/* Injected toolbar (lives in the page, not inside the panel) */
+/* Injected toolbar (lives in the page, not inside the panel).
+   Host pages apply their own layout to our container, so every property that
+   decides whether the buttons stay on one line is pinned here. */
 .awt-toolbar {
-  display: flex;
-  flex-wrap: wrap;
+  display: flex !important;
+  flex-wrap: wrap !important;
+  flex-direction: row !important;
+  align-items: center;
+  align-content: flex-start;
   gap: 6px;
   margin: 6px 0 2px;
-  align-items: center;
+  padding: 0;
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+  width: auto;
+  height: auto;
+  writing-mode: horizontal-tb !important;
+  direction: ltr;
+  text-align: left;
+  line-height: normal;
+  white-space: normal;
 }
 
 .awt-tag {
+  flex: 0 0 auto;
   font: 11px system-ui, -apple-system, "Segoe UI", sans-serif;
   color: #5f6368;
+  white-space: nowrap;
 }
 
 .awt-run-btn {
+  flex: 0 0 auto;
+  width: auto;
+  min-width: max-content;
+  max-width: none;
+  box-sizing: border-box;
+  white-space: nowrap !important;
+  word-break: keep-all;
+  overflow-wrap: normal;
+  writing-mode: horizontal-tb !important;
+  text-orientation: mixed;
   cursor: pointer;
   padding: 2px 9px;
   border: 1px solid #9aa0a6;
