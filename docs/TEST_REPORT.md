@@ -11,7 +11,7 @@
 | Metric | Result |
 |---|---|
 | Test files | 10 passed / 10 |
-| Tests | **57 passed / 57** |
+| Tests | **58 passed / 58** |
 | Real PowerShell executions | 4 (via `CommandExecutor`) |
 | WebSocket end-to-end Bridge runs | 3 (local exit 0, local exit 5, SSH session) |
 | Persistent SSH tests | 7 (mocked ssh2) |
@@ -19,8 +19,8 @@
 
 ```
  Test Files  10 passed (10)
-      Tests  57 passed (57)
-   Duration  5.05s
+      Tests  58 passed (58)
+   Duration  5.02s
 ```
 
 ---
@@ -37,7 +37,8 @@
 | `test/bridgeServer.test.js` | 5 | **Real WebSocket**: bad token rejected, good token accepted, run streams output + result, exit 5, SSH session create + run. |
 | `test/sshSession.test.js` | 5 | Persistent ssh2: connect once, exec per command, stdout/stderr/exit, cwd prefix, close. |
 | `test/browserAdapter.test.js` | 4 | Manifest validity (MV3, matches), adapter surface, site profiles, background protocol strings. |
-| `test/adapterDom.test.js` | 5 | **jsdom DOM**: toolbar injection, Python block skipped, Run dispatch, Send Output fills the input, manual Enter command. |
+| `test/adapterDom.test.js` | 6 | **jsdom DOM**: toolbar injection, Python block skipped, Run dispatch, Send Output fills the input, manual Enter command, panel resize grip + collapse/restore. |
+| `test/adapters.test.js` | 5 | Legacy Electron adapter surface kept for reference (no Electron dependency required to run). |
 | `test/adapters.test.js` | 5 | Legacy Electron adapter scripts are syntactically valid and expose expected buttons. |
 
 ---

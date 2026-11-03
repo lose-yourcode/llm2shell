@@ -1,0 +1,23 @@
+fix(panel): make the floating panel resizable and always restorable
+
+Two reported usability defects in the injected panel:
+
+1. The panel could not be resized. It was pinned at a fixed 580x340 with no
+   size control. Added a drag grip in the top-left corner (the panel is
+   anchored bottom-right, so dragging left/up grows it), clamped to
+   320px..viewport and 160px..viewport, with an explicit height and
+   `.awt-out { flex: 1 1 auto }` so the output area follows the new size.
+
+2. Clicking collapse made the panel unrecoverable. The collapsed rule
+   shrank the panel to 260px while the header still carried every control,
+   so `overflow: hidden` clipped the collapse button itself. Fixed by
+   pinning `.awt-collapse` absolutely at right/top with z-index above the
+   header, wrapping the header, hiding the unused controls while collapsed,
+   and routing every toggle through `setCollapsed()` which saves/restores
+   the inline width/height and swaps the label between `-` and `+`.
+   Double-clicking the title is a second restore path.
+
+Tests: added a jsdom case asserting the grip exists, collapse hides the
+output area and shows `+`, and a second click restores `-`. Suite is now
+58 tests in 10 files, all passing. Docs updated (test counts, known
+issues, README usage step).

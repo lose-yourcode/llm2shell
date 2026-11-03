@@ -113,4 +113,19 @@ describe('browser adapter DOM behaviour', () => {
     const runCall = calls.filter((c) => c.type === 'awt:run').pop();
     expect(runCall.command).toBe('Get-Location');
   });
+
+  it('collapses and restores the panel, keeping the collapse button usable', () => {
+    const panel = document.getElementById('awt-panel');
+    const btn = panel.querySelector('button[data-awt="collapse"]');
+
+    expect(panel.querySelector('.awt-resize')).toBeTruthy();
+
+    btn.click();
+    expect(panel.classList.contains('awt-collapsed')).toBe(true);
+    expect(btn.textContent).toBe('+');
+
+    btn.click();
+    expect(panel.classList.contains('awt-collapsed')).toBe(false);
+    expect(btn.textContent).toBe('–');
+  });
 });

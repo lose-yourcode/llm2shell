@@ -20,7 +20,7 @@ Severity: 🔴 blocks a core acceptance item · 🟠 degrades experience · 🟡
 |---|---|---|---|
 | 6 | ChatGPT/Gemini DOM changes can break code-block detection or input refill. | 🟠 | Heuristics + fallbacks; `Copy` always works. Update `browser/content/*.js` selectors. |
 | 7 | Filling a `contenteditable` editor can append instead of replace. | 🟡 | `selectAll` + `insertText` is best-effort; clear manually if needed. |
-| 8 | The panel is fixed bottom-right; some sites' CSS could overlap it. | 🟡 | `z-index: 2147483647`; collapse button available. |
+| 8 | The panel is fixed bottom-right; some sites' CSS could overlap it. | 🟡 | `z-index: 2147483647`; drag the top-left grip to resize (320×160 up to the viewport), click `–` (or double-click the title) to collapse and `+` to restore. |
 | 9 | Concurrent runs in the same tab share one panel; output can interleave. | 🟡 | Run one command at a time; a future version can key panels by `reqId`. |
 
 ## Bridge / security

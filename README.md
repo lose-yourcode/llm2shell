@@ -78,6 +78,8 @@ Keep this window open.
 4. Click **Run** → output streams into the floating panel (bottom-right).
 5. Click **Send Output** → the result is placed in the AI input box. Review and send.
 6. You can also type a command directly in the panel's `$` input and press Enter.
+7. Drag the **top-left grip** to resize the panel; click **– / +** (or double-click the title)
+   to collapse and restore it.
 
 ---
 
@@ -157,7 +159,7 @@ src/
   bridge/sessionStore.js       logical sessions + cd tracking
   bridge/sshSession.js         persistent ssh2 connection (connect once, exec per command)
 scripts/run-tests.js     test launcher (workspace-local temp dir)
-test/                    Vitest suite (57 tests)
+test/                    Vitest suite (58 tests)
 docs/                    architecture, feasibility, test report, known issues, LLM prompt
 electron/ + renderer/    OPTIONAL legacy desktop shell (not the primary path)
 ```
@@ -176,9 +178,10 @@ electron/ + renderer/    OPTIONAL legacy desktop shell (not the primary path)
 
 ## Verification status
 
-- ✅ **57 automated tests pass** (10 files), including **real PowerShell execution**, a
+- ✅ **58 automated tests pass** (10 files), including **real PowerShell execution**, a
   **WebSocket end-to-end Bridge test** (hello → run → output → result with exact exit codes),
-  a **jsdom DOM test** for toolbar injection + input refill, and **persistent SSH** tests.
+  a **jsdom DOM test** for toolbar injection + input refill + panel resize/collapse, and
+  **persistent SSH** tests.
 - ✅ Bridge HTTP health endpoint returns 200; CLI prints a token.
 - ⚠️ **Live ChatGPT/Gemini DOM behaviour** (Run button placement, input refill) is **UNKNOWN**
   in the build environment — it requires a real browser session. Manual steps are in

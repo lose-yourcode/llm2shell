@@ -5,7 +5,11 @@
   right: 18px;
   bottom: 18px;
   width: 580px;
+  height: 340px;
+  min-width: 320px;
+  min-height: 160px;
   max-width: calc(100vw - 36px);
+  max-height: calc(100vh - 36px);
   background: #15181e;
   color: #e6e9ef;
   border: 1px solid #3a404b;
@@ -16,23 +20,67 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  resize: none;
+}
+
+#awt-panel .awt-resize {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 16px;
+  height: 16px;
+  cursor: nwse-resize;
+  z-index: 3;
+  opacity: 0.65;
+  background: linear-gradient(135deg, transparent 46%, #6b7280 46%, #6b7280 54%, transparent 54%);
+}
+
+#awt-panel .awt-resize:hover {
+  opacity: 1;
 }
 
 #awt-panel.awt-collapsed {
   width: 260px;
+  height: auto;
+  min-height: 0;
 }
 
-#awt-panel.awt-collapsed .awt-out {
+#awt-panel.awt-collapsed .awt-out,
+#awt-panel.awt-collapsed .awt-inputrow,
+#awt-panel.awt-collapsed .awt-resize {
   display: none;
 }
 
+#awt-panel.awt-collapsed .awt-sshform {
+  display: none !important;
+}
+
+#awt-panel.awt-collapsed .awt-btn:not([data-awt="collapse"]),
+#awt-panel.awt-collapsed .awt-session {
+  display: none;
+}
+
+#awt-panel.awt-collapsed .awt-title {
+  flex: 1;
+}
+
 #awt-panel .awt-head {
+  position: relative;
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 6px;
-  padding: 6px 8px;
+  padding: 6px 34px 6px 8px;
   background: #1e222a;
   border-bottom: 1px solid #3a404b;
+}
+
+/* Pin the collapse button so it is never clipped when the panel is narrow. */
+#awt-panel .awt-collapse {
+  position: absolute;
+  right: 6px;
+  top: 6px;
+  z-index: 4;
 }
 
 #awt-panel .awt-dot {
@@ -90,7 +138,9 @@
 #awt-panel .awt-out {
   margin: 0;
   padding: 8px 10px;
-  height: 230px;
+  flex: 1 1 auto;
+  min-height: 60px;
+  height: auto;
   overflow: auto;
   font: 12px/1.45 Consolas, "Cascadia Mono", "Courier New", monospace;
   white-space: pre-wrap;

@@ -10,7 +10,7 @@
 - Logical sessions with `cd` tracking.
 - **Persistent SSH sessions** via `ssh2`: one connection per session, `exec` per command, tracked
   cwd, `+ SSH` form in the panel.
-- 57 automated tests, including real shell execution, a WebSocket end-to-end run, a jsdom
+- 58 automated tests, including real shell execution, a WebSocket end-to-end run, a jsdom
   DOM test for the adapter, and persistent SSH session tests.
 
 ## Highest-value next work

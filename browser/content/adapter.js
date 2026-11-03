@@ -171,6 +171,7 @@
     var panel = document.createElement('div');
     panel.id = 'awt-panel';
     panel.innerHTML =
+      '<div class="awt-resize" title="Drag to resize"></div>' +
       '<div class="awt-head">' +
         '<span class="awt-dot" title="Bridge status"></span>' +
         '<span class="awt-title">LLM2Shell</span>' +
@@ -181,7 +182,7 @@
         '<button class="awt-btn" data-awt="sendsel" title="Send the selected text">Send Selected</button>' +
         '<button class="awt-btn" data-awt="copy" title="Copy the output">Copy</button>' +
         '<button class="awt-btn" data-awt="clear" title="Clear the panel">Clear</button>' +
-        '<button class="awt-btn awt-icon" data-awt="collapse" title="Collapse / expand">–</button>' +
+        '<button class="awt-btn awt-icon awt-collapse" data-awt="collapse" title="Collapse / expand">–</button>' +
       '</div>' +
       '<div class="awt-sshform" style="display:none">' +
         '<input class="awt-ssh-host" placeholder="host" spellcheck="false" />' +
@@ -214,6 +215,25 @@
         }
       });
     }
+    var savedSize = null;
+    function setCollapsed(collapsed) {
+      if (collapsed) {
+        savedSize = { width: panel.style.width, height: panel.style.height };
+        panel.style.width = '';
+        panel.style.height = '';
+      } else if (savedSize) {
+        panel.style.width = savedSize.width;
+        panel.style.height = savedSize.height;
+        savedSize = null;
+      }
+      panel.classList.toggle('awt-collapsed', collapsed);
+      var cb = panel.querySelector('button[data-awt="collapse"]');
+      if (cb) {
+        cb.textContent = collapsed ? '+' : '–';
+        cb.title = collapsed ? 'Expand' : 'Collapse';
+      }
+    }
+
     panel.addEventListener('click', function (e) {
       var btn = e.target.closest ? e.target.closest('button[data-awt]') : null;
       if (!btn) return;
@@ -222,7 +242,7 @@
       else if (action === 'sendsel') sendToAI('selected');
       else if (action === 'copy') copyOutput();
       else if (action === 'clear') clearPanel();
-      else if (action === 'collapse') panel.classList.toggle('awt-collapsed');
+      else if (action === 'collapse') setCollapsed(!panel.classList.contains('awt-collapsed'));
       else if (action === 'ssh') {
         var form = panel.querySelector('.awt-sshform');
         form.style.display = form.style.display === 'none' ? 'flex' : 'none';
@@ -232,6 +252,46 @@
         connectSSH();
       }
     });
+
+    // Resize from the top-left grip (the panel is anchored bottom-right, so
+    // dragging left/up grows it).
+    var grip = panel.querySelector('.awt-resize');
+    if (grip) {
+      var startX = 0, startY = 0, startW = 0, startH = 0, resizing = false;
+      var onMove = function (e) {
+        if (!resizing) return;
+        var w = Math.max(320, Math.min(window.innerWidth - 36, startW - (e.clientX - startX)));
+        var h = Math.max(160, Math.min(window.innerHeight - 36, startH - (e.clientY - startY)));
+        panel.style.width = w + 'px';
+        panel.style.height = h + 'px';
+      };
+      var onUp = function () {
+        resizing = false;
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+      };
+      grip.addEventListener('mousedown', function (e) {
+        if (panel.classList.contains('awt-collapsed')) return;
+        resizing = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        var rect = panel.getBoundingClientRect();
+        startW = rect.width;
+        startH = rect.height;
+        e.preventDefault();
+        e.stopPropagation();
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup', onUp);
+      });
+    }
+
+    // Double-click the title to collapse/expand as a second restore path.
+    var titleEl = panel.querySelector('.awt-title');
+    if (titleEl) {
+      titleEl.addEventListener('dblclick', function () {
+        setCollapsed(!panel.classList.contains('awt-collapsed'));
+      });
+    }
   }
 
   function setConnected(connected) {
