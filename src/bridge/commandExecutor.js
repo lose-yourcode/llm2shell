@@ -5,6 +5,7 @@ const cp = require('child_process');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const { findUnterminatedQuote, formatQuoteWarning } = require('./quoteGuard');
 
 /**
  * commandExecutor
@@ -40,6 +41,18 @@ class CommandExecutor extends EventEmitter {
   run({ command, cwd, timeout = 60000, onData } = {}) {
     return new Promise((resolve) => {
       const isWin = process.platform === 'win32';
+
+      // Refuse a command whose quotes never close. This is what a code block
+      // looks like when it was captured mid-stream: running it only produces
+      // a PowerShell/bash parser dump and a confusing exit code.
+      const badQuote = findUnterminatedQuote(command, isWin ? 'powershell' : 'bash');
+      if (badQuote) {
+        const msg = formatQuoteWarning(badQuote, command);
+        if (onData) onData(msg, 'stderr');
+        resolve({ exitCode: -1, stdout: '', stderr: msg, timedOut: false, invalid: true });
+        return;
+      }
+
       const spawnOpts = {
         cwd: cwd || process.cwd(),
         env: process.env,
@@ -52,8 +65,11 @@ class CommandExecutor extends EventEmitter {
       try {
         if (isWin) {
           // PowerShell: use a temp .ps1 for reliable multi-line execution.
+          // The BOM matters: without it PowerShell 5.1 decodes the file with the
+          // ANSI code page, so non-ASCII characters (Chinese paths, comments)
+          // get mangled and can even corrupt quote parsing.
           tmpFile = path.join(os.tmpdir(), 'awt_' + Date.now() + '_' + Math.random().toString(36).slice(2) + '.ps1');
-          fs.writeFileSync(tmpFile, command, 'utf8');
+          fs.writeFileSync(tmpFile, '\ufeff' + command, 'utf8');
           child = cp.spawn('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', tmpFile], spawnOpts);
         } else {
           child = cp.spawn('bash', ['-c', command], spawnOpts);

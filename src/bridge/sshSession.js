@@ -1,5 +1,7 @@
 'use strict';
 
+const { findUnterminatedQuote, formatQuoteWarning } = require('./quoteGuard');
+
 /**
  * SshSession
  * ----------
@@ -88,6 +90,16 @@ class SshSession {
     return new Promise((resolve, reject) => {
       if (!this.client || !this.connected) {
         reject(new Error('SSH session is not connected'));
+        return;
+      }
+
+      // Same guard as the local executor: a truncated block would otherwise
+      // fail remotely with an opaque "unexpected EOF".
+      const badQuote = findUnterminatedQuote(command, 'bash');
+      if (badQuote) {
+        const msg = formatQuoteWarning(badQuote, command);
+        if (onData) onData(msg, 'stderr');
+        resolve({ exitCode: -1, stdout: '', stderr: msg, timedOut: false, invalid: true });
         return;
       }
 

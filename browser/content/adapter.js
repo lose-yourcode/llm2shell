@@ -230,12 +230,15 @@
         '<button class="awt-btn" data-awt="clear" title="Clear the panel">Clear</button>' +
       '</div>' +
       '<div class="awt-sshform" style="display:none">' +
-        '<input class="awt-ssh-host" placeholder="host" spellcheck="false" />' +
+        '<input class="awt-ssh-host" placeholder="host or ssh alias" spellcheck="false" />' +
         '<input class="awt-ssh-port" value="22" title="port" />' +
-        '<input class="awt-ssh-user" placeholder="user" spellcheck="false" />' +
+        '<input class="awt-ssh-user" placeholder="user (alias fills this)" spellcheck="false" />' +
         '<input class="awt-ssh-pass" type="password" placeholder="password" />' +
-        '<button class="awt-btn" data-awt="ssh-connect">Connect</button>' +
-        '<button class="awt-btn" data-awt="ssh-cancel">Cancel</button>' +
+        '<input class="awt-ssh-key" placeholder="key path, e.g. ~/.ssh/id_ed25519" spellcheck="false" />' +
+        '<div class="awt-sshbtns">' +
+          '<button class="awt-btn" data-awt="ssh-connect">Connect</button>' +
+          '<button class="awt-btn" data-awt="ssh-cancel">Cancel</button>' +
+        '</div>' +
       '</div>' +
       '<pre class="awt-out"></pre>' +
       '<div class="awt-inputrow">' +
@@ -299,7 +302,8 @@
       else if (action === 'collapse') setCollapsed(!panel.classList.contains('awt-collapsed'));
       else if (action === 'ssh') {
         var form = panel.querySelector('.awt-sshform');
-        form.style.display = form.style.display === 'none' ? 'flex' : 'none';
+        // 'grid', not 'flex': the form uses grid-template-areas.
+        form.style.display = form.style.display === 'none' ? 'grid' : 'none';
       } else if (action === 'ssh-cancel') {
         panel.querySelector('.awt-sshform').style.display = 'none';
       } else if (action === 'ssh-connect') {
@@ -520,14 +524,15 @@
     var port = parseInt(state.panel.querySelector('.awt-ssh-port').value, 10) || 22;
     var username = state.panel.querySelector('.awt-ssh-user').value.trim();
     var password = state.panel.querySelector('.awt-ssh-pass').value;
+    var identityFile = state.panel.querySelector('.awt-ssh-key').value.trim();
 
-    if (!host || !username) {
-      appendOut('\n[LLM2Shell] SSH host and username are required.\n', 'stderr');
+    if (!host) {
+      appendOut('\n[LLM2Shell] SSH host (or ~/.ssh/config alias) is required.\n', 'stderr');
       return;
     }
 
     expandPanel();
-    appendOut('\n[LLM2Shell] Connecting to ' + username + '@' + host + ':' + port + '…\n', 'stdout');
+    appendOut('\n[LLM2Shell] Connecting to ' + (username ? username + '@' : '') + host + ':' + port + '…\n', 'stdout');
     state.panel.querySelector('.awt-ssh-pass').value = '';
     state.panel.querySelector('.awt-sshform').style.display = 'none';
 
@@ -537,11 +542,12 @@
           type: 'awt:createSession',
           session: {
             sessionType: 'ssh',
-            name: username + '@' + host,
+            name: (username ? username + '@' : '') + host,
             host: host,
             port: port,
             username: username,
-            password: password
+            password: password,
+            identityFile: identityFile
           }
         },
         function (resp) {
@@ -569,7 +575,19 @@
     return b;
   }
 
-  function buildToolbar(text, lang) {
+  // Read the block at click time, not when the toolbar was injected. ChatGPT and
+  // Gemini stream code into the DOM, so a toolbar can be created while the block
+  // is still being written; using the captured snapshot then runs a truncated
+  // command (typically ending in an unterminated quote).
+  function blockText(pre) {
+    if (!pre) return '';
+    var code = pre.querySelector('code') || pre;
+    var t = code.innerText;
+    if (typeof t !== 'string') t = code.textContent || '';
+    return t.replace(/\n+$/, '');
+  }
+
+  function buildToolbar(pre, lang) {
     var bar = document.createElement('div');
     bar.className = 'awt-toolbar';
     bar.setAttribute('data-awt-toolbar', '1');
@@ -579,13 +597,13 @@
     bar.appendChild(tag);
 
     bar.appendChild(makeButton('Run', 'Run in the selected terminal', function () {
-      runCommand(text, lang);
+      runCommand(blockText(pre), lang);
     }));
     bar.appendChild(makeButton('Run All', 'Run this block', function () {
-      runCommand(text, lang);
+      runCommand(blockText(pre), lang);
     }));
     bar.appendChild(makeButton('Copy', 'Copy to clipboard', function () {
-      try { navigator.clipboard.writeText(text); } catch (e) {}
+      try { navigator.clipboard.writeText(blockText(pre)); } catch (e) {}
     }));
     bar.appendChild(makeButton('Select Terminal', 'Choose which session runs this', function () {
       if (state.panel) {
@@ -602,6 +620,20 @@
     expandPanel();
     clearPanel();
     appendOut('$ ' + command + '\n', 'stdout');
+    if (/^\s*ssh\s/i.test(command)) {
+      var cur = null;
+      for (var i = 0; i < state.sessions.length; i++) {
+        if (state.sessions[i].id === state.sessionId) cur = state.sessions[i];
+      }
+      if (!cur || cur.type !== 'ssh') {
+        appendOut(
+          '[LLM2Shell] Tip: a local `ssh host "cmd"` is one-shot — it reconnects every time, prints\n' +
+            'the "Pseudo-terminal will not be allocated" warning, and cannot answer a password prompt.\n' +
+            'Use + SSH for a persistent, authenticated session (or add -T to silence the warning).\n',
+          'stderr'
+        );
+      }
+    }
     state.lastResult = null;
     if (!state.connected) {
       appendOut('[LLM2Shell] Bridge not connected. Start it with `npm start` and set the token in the extension options.\n', 'stderr');
@@ -632,7 +664,7 @@
     var lang = detectLang(pre, code);
     if (!shouldRun(lang, text)) return;
     pre.setAttribute('data-awt', '1');
-    var bar = buildToolbar(text.replace(/\n+$/, ''), lang);
+    var bar = buildToolbar(pre, lang);
     if (pre.parentNode) pre.parentNode.insertBefore(bar, pre);
   }
 
@@ -657,6 +689,15 @@
         break;
       case 'awt:result':
         state.lastResult = p;
+        if (p.invalid) {
+          appendOut('[LLM2Shell] Nothing was executed: the command is malformed.\n', 'stderr');
+        } else if (p.timedOut) {
+          appendOut(
+            '[LLM2Shell] Timed out. A password prompt or an interactive program cannot be answered\n' +
+              'from this panel — use + SSH for a remote host.\n',
+            'stderr'
+          );
+        }
         appendOut('\n[exit ' + p.exitCode + ' · ' + p.status + ']\n', p.exitCode === 0 ? 'stdout' : 'stderr');
         break;
       case 'awt:error':

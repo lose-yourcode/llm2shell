@@ -134,20 +134,38 @@ function createBridgeServer(options = {}) {
 
         case 'session.create': {
           if (msg.sessionType === 'ssh') {
-            if (!msg.host || !msg.username) {
-              send({ type: 'error', reqId, message: 'SSH requires host and username' });
+            if (!msg.host) {
+              send({ type: 'error', reqId, message: 'SSH requires a host (or an ~/.ssh/config alias)' });
               return;
             }
-            const s = sessions.createSSH({
-              name: msg.name,
-              host: msg.host,
-              port: msg.port,
-              username: msg.username,
-              password: msg.password,
-              privateKey: msg.privateKey,
-              passphrase: msg.passphrase,
-              cwd: msg.cwd
-            });
+            let s;
+            try {
+              s = sessions.createSSH({
+                name: msg.name,
+                host: msg.host,
+                port: msg.port,
+                username: msg.username,
+                password: msg.password,
+                identityFile: msg.identityFile,
+                privateKey: msg.privateKey,
+                passphrase: msg.passphrase,
+                cwd: msg.cwd
+              });
+            } catch (err) {
+              send({ type: 'error', reqId, message: 'SSH session rejected: ' + err.message });
+              return;
+            }
+            if (!s.username) {
+              sessions.kill(s.id);
+              send({
+                type: 'error',
+                reqId,
+                message:
+                  'SSH needs a username. "' + msg.host + '" is not an alias in ~/.ssh/config, ' +
+                  'so fill in the user field (or type the alias exactly as in `ssh <alias>`).'
+              });
+              return;
+            }
             try {
               await sessions.connect(s.id);
               send({ type: 'session.created', reqId, session: sessions.publicInfo(s.id) });
@@ -209,6 +227,8 @@ function createBridgeServer(options = {}) {
             exitCode: res.exitCode,
             stdout: res.stdout,
             stderr: res.stderr,
+            timedOut: !!res.timedOut,
+            invalid: !!res.invalid,
             status: res.exitCode === 0 ? 'success' : 'failed',
             startTime,
             endTime: new Date().toISOString()

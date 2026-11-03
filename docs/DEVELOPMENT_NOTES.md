@@ -10,10 +10,14 @@
 - Service worker: WebSocket client, token handshake, auto-reconnect, outbox, per-tab routing.
 - Local Bridge: HTTP health, WebSocket server, origin check, token auth, JSON protocol.
 - Execution: accurate `child_process` capture (separate stdout/stderr, exact exit code).
+- **Quote guard** (`src/bridge/quoteGuard.js`): refuses a command whose quote never closes, so a
+  truncated block produces a clear message instead of a raw parser dump.
+- Block text is re-read from the DOM **when Run is clicked**, not when the toolbar was injected —
+  streaming replies otherwise execute a half-copied command.
 - Logical sessions with `cd` tracking.
 - **Persistent SSH sessions** via `ssh2`: one connection per session, `exec` per command, tracked
   cwd, `+ SSH` form in the panel.
-- 62 automated tests, including real shell execution, a WebSocket end-to-end run, a jsdom
+- 93 automated tests, including real shell execution, a WebSocket end-to-end run, a jsdom
   DOM test for the adapter, and persistent SSH session tests.
 
 ## Highest-value next work

@@ -119,7 +119,15 @@ For a persistent connection:
 3. The session becomes active; every **Run** executes on that host over one open `ssh2` connection.
 4. `cd` typed in the panel updates the tracked working directory for later commands.
 
+The **host** field accepts an `~/.ssh/config` alias: typing `myserver` resolves HostName, User,
+Port and IdentityFile from your config, and the **key** field takes a private key path
+(`~/.ssh/id_ed25519`). Password and key auth both work; ssh-agent and host-key pinning do not.
+
 Details and troubleshooting: [`docs/SSH_NOTES.md`](docs/SSH_NOTES.md).
+
+If a local `ssh host "cmd"` prints the warning and then appears to do nothing, it is waiting for a
+password or host-key confirmation that the panel cannot answer (there is no stdin). It ends as
+`[exit 124 · failed]` after the timeout. Use **+ SSH** instead.
 
 ## The LLM prompt (important)
 
@@ -128,6 +136,18 @@ For reliable detection, tell the AI how to format commands. Ready-to-paste promp
 
 > Put each runnable command batch in a fenced block tagged `powershell`, `bash`, or `sh`.
 > One batch per block. No prompts or commentary inside the block.
+
+---
+
+## Troubleshooting
+
+| Symptom | Cause | What to do |
+|---|---|---|
+| `Pseudo-terminal will not be allocated because stdin is not a terminal` | OpenSSH command mode: a local `ssh host "cmd"` is one-shot | Use **+ SSH** for a persistent session, or add `-T` to silence it |
+| `The string is missing the terminator: "` / `ParserError` | The block was captured truncated, or the model emitted an unbalanced quote | Fixed: the Bridge now refuses the command with the exact line/column and never spawns a shell. Re-copy the block and run again |
+| `[exit 124 · failed]` with no output | The command waited for stdin (password prompt, `read`, a TUI program) | Use **+ SSH**, or make the command non-interactive |
+| No **Run** buttons on a block | The block is not tagged as a shell language and the heuristic skipped it | Click **Prompt** once, or tag the block `powershell` / `bash` / `sh` |
+| The status dot stays red | Bridge not running, or the token does not match | `npm start`, then paste the printed token in **Options → Save & Connect** |
 
 ---
 
@@ -179,11 +199,13 @@ bridge/
 src/
   bridge/commandDetector.js    language classification + heuristics
   bridge/commandExecutor.js    accurate stdout/stderr/exit capture
+  bridge/quoteGuard.js         refuses a command with an unterminated quote
   bridge/resultCollector.js    F06 result records
   bridge/sessionStore.js       logical sessions + cd tracking
   bridge/sshSession.js         persistent ssh2 connection (connect once, exec per command)
+  bridge/sshConfig.js          ~/.ssh/config alias -> host/user/port/key
 scripts/run-tests.js     test launcher (workspace-local temp dir)
-test/                    Vitest suite (62 tests)
+test/                    Vitest suite (93 tests)
 docs/                    architecture, feasibility, test report, known issues, LLM prompt
 electron/ + renderer/    OPTIONAL legacy desktop shell (not the primary path)
 ```
@@ -202,7 +224,7 @@ electron/ + renderer/    OPTIONAL legacy desktop shell (not the primary path)
 
 ## Verification status
 
-- ✅ **62 automated tests pass** (10 files), including **real PowerShell execution**, a
+- ✅ **93 automated tests pass** (12 files), including **real PowerShell execution**, a
   **WebSocket end-to-end Bridge test** (hello → run → output → result with exact exit codes),
   a **jsdom DOM test** for toolbar injection + input refill + panel resize/collapse, and
   **persistent SSH** tests.

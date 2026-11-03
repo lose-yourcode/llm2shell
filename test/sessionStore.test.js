@@ -69,7 +69,11 @@ describe('SessionStore', () => {
       close: () => { calls.push('close'); }
     };
 
-    const store = new SessionStore({ cwd: process.cwd(), sshFactory: () => fakeSsh });
+    const store = new SessionStore({
+      cwd: process.cwd(),
+      sshFactory: () => fakeSsh,
+      sshConfigResolver: () => null
+    });
     const s = store.createSSH({ host: 'example.com', username: 'root', password: 'secret' });
     expect(s.type).toBe('ssh');
     expect(s.status).toBe('disconnected');
@@ -87,5 +91,82 @@ describe('SessionStore', () => {
 
     store.kill(s.id);
     expect(calls).toContain('close');
+  });
+
+  it('resolves an ~/.ssh/config alias into host, user, port and key', () => {
+    const seen = [];
+    const store = new SessionStore({
+      cwd: process.cwd(),
+      sshFactory: (cfg) => { seen.push(cfg); return { connect: async () => {}, close: () => {} }; },
+      sshConfigResolver: (alias) =>
+        alias === 'myserver'
+          ? {
+              alias: 'myserver',
+              host: '203.0.113.10',
+              port: 2222,
+              username: 'deploy',
+              identityFile: null
+            }
+          : null
+    });
+
+    const s = store.createSSH({ host: 'myserver' });
+    expect(s.host).toBe('203.0.113.10');
+    expect(s.port).toBe(2222);
+    expect(s.username).toBe('deploy');
+    expect(s.alias).toBe('myserver');
+    expect(seen[0].host).toBe('203.0.113.10');
+  });
+
+  it('keeps explicit values over the alias defaults', () => {
+    const store = new SessionStore({
+      cwd: process.cwd(),
+      sshFactory: () => ({ connect: async () => {}, close: () => {} }),
+      sshConfigResolver: () => ({ host: 'real-host', port: 22, username: 'from-config' })
+    });
+    const s = store.createSSH({ host: 'alias', username: 'explicit', port: 2200 });
+    expect(s.host).toBe('real-host');
+    expect(s.username).toBe('explicit');
+    expect(s.port).toBe(2200);
+  });
+
+  it('rejects an alias that needs a jump host', () => {
+    const store = new SessionStore({
+      cwd: process.cwd(),
+      sshFactory: () => ({ connect: async () => {}, close: () => {} }),
+      sshConfigResolver: () => ({ host: 'internal', port: 22, username: 'me', proxyJump: 'bastion' })
+    });
+    expect(() => store.createSSH({ host: 'internal' })).toThrow(/ProxyJump/);
+  });
+
+  it('loads a private key file when one is given', () => {
+    const fs = require('fs');
+    const os = require('os');
+    const path = require('path');
+    const keyPath = path.join(os.tmpdir(), 'awt-test-key-' + Date.now());
+    fs.writeFileSync(keyPath, '-----BEGIN OPENSSH PRIVATE KEY-----\nfake\n', 'utf8');
+
+    let cfgSeen = null;
+    const store = new SessionStore({
+      cwd: process.cwd(),
+      sshFactory: (cfg) => { cfgSeen = cfg; return { connect: async () => {}, close: () => {} }; },
+      sshConfigResolver: () => null
+    });
+    store.createSSH({ host: 'h', username: 'u', identityFile: keyPath });
+    expect(Buffer.isBuffer(cfgSeen.privateKey)).toBe(true);
+    expect(cfgSeen.privateKey.toString()).toContain('BEGIN OPENSSH PRIVATE KEY');
+
+    try { fs.unlinkSync(keyPath); } catch (_) {}
+  });
+
+  it('reports a readable error for a missing key file', () => {
+    const store = new SessionStore({
+      cwd: process.cwd(),
+      sshFactory: () => ({ connect: async () => {}, close: () => {} }),
+      sshConfigResolver: () => null
+    });
+    expect(() => store.createSSH({ host: 'h', username: 'u', identityFile: '/nope/id_rsa' })).toThrow(
+      /Cannot read SSH key/
+    );
   });
 });

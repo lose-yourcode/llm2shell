@@ -179,8 +179,12 @@
 }
 
 #awt-panel .awt-sshform {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: 1fr 64px 1fr;
+  grid-template-areas:
+    "host port user"
+    "pass key  key"
+    "btns btns btns";
   gap: 6px;
   padding: 6px 8px;
   border-bottom: 1px solid #3a404b;
@@ -195,12 +199,22 @@
   padding: 4px 6px;
   font: 11px Consolas, "Cascadia Mono", monospace;
   min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
 }
 
-#awt-panel .awt-ssh-host { flex: 1 1 110px; }
-#awt-panel .awt-ssh-port { width: 54px; flex: 0 0 auto; }
-#awt-panel .awt-ssh-user { flex: 1 1 80px; }
-#awt-panel .awt-ssh-pass { flex: 1 1 100px; }
+#awt-panel .awt-ssh-host { grid-area: host; }
+#awt-panel .awt-ssh-port { grid-area: port; }
+#awt-panel .awt-ssh-user { grid-area: user; }
+#awt-panel .awt-ssh-pass { grid-area: pass; }
+#awt-panel .awt-ssh-key { grid-area: key; }
+
+#awt-panel .awt-sshbtns {
+  grid-area: btns;
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
 
 #awt-panel .awt-inputrow {
   display: flex;

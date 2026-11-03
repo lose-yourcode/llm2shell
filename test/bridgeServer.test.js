@@ -102,6 +102,22 @@ describe('Bridge server (WebSocket integration)', () => {
     ws.close();
   }, 45000);
 
+  it('reports a malformed command as invalid without executing it', async () => {
+    const ws = await open(`ws://127.0.0.1:${bridge.port}`);
+    ws.send(JSON.stringify({ type: 'hello', token: 'test-token' }));
+    await nextMessage(ws, (x) => x.type === 'hello.ok');
+
+    const reqId = 'test-run-bad-quote';
+    ws.send(JSON.stringify({ type: 'run', reqId, command: 'ssh myserver "unterminated' }));
+    const result = await nextMessage(ws, (x) => x.type === 'result' && x.reqId === reqId);
+
+    expect(result.invalid).toBe(true);
+    expect(result.status).toBe('failed');
+    expect(result.stderr).toContain('Refusing to run');
+    expect(result.stderr).not.toContain('ParserError');
+    ws.close();
+  }, 45000);
+
   it('creates an SSH session and runs over the persistent connection', async () => {
     const fakeSsh = {
       connect: async () => {},

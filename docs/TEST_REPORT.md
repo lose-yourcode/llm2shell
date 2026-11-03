@@ -10,17 +10,17 @@
 
 | Metric | Result |
 |---|---|
-| Test files | 10 passed / 10 |
-| Tests | **62 passed / 62** |
-| Real PowerShell executions | 4 (via `CommandExecutor`) |
-| WebSocket end-to-end Bridge runs | 3 (local exit 0, local exit 5, SSH session) |
-| Persistent SSH tests | 7 (mocked ssh2) |
+| Test files | 12 passed / 12 |
+| Tests | **93 passed / 93** |
+| Real PowerShell executions | 6 (via `CommandExecutor`) |
+| WebSocket end-to-end Bridge runs | 4 (local exit 0, local exit 5, malformed command, SSH session) |
+| Persistent SSH tests | 7 (mocked ssh2) + 13 store/config tests |
 | Failures | 0 |
 
 ```
- Test Files  10 passed (10)
-      Tests  62 passed (62)
-   Duration  5.02s
+ Test Files  12 passed (12)
+      Tests  93 passed (93)
+   Duration  4.95s
 ```
 
 ---
@@ -31,14 +31,15 @@
 |---|---:|---|
 | `test/commandDetector.test.js` | 11 | Shell language classification, fenced-code parsing, content heuristic, source-code guard. |
 | `test/resultCollector.test.js` | 5 | F06 record schema, status transitions, separate stdout/stderr, session filtering. |
-| `test/commandExecutor.test.js` | 4 | **Real** PowerShell: stdout capture, stdout/stderr separation, exact exit code, streaming. |
+| `test/commandExecutor.test.js` | 6 | **Real** PowerShell: stdout capture, stdout/stderr separation, exact exit code, streaming, **refuses an unterminated quote**, multi-line quoted command still runs. |
 | `test/sessionManager.test.js` | 5 | Legacy PTY session lifecycle with a mocked `node-pty` (create/write/resize/kill/events). |
-| `test/sessionStore.test.js` | 8 | Default session, create/get/list/kill, ≥3 sessions, `cd` tracking, bad paths, SSH create/connect/exec. |
-| `test/bridgeServer.test.js` | 5 | **Real WebSocket**: bad token rejected, good token accepted, run streams output + result, exit 5, SSH session create + run. |
+| `test/sessionStore.test.js` | 13 | Default session, create/get/list/kill, ≥3 sessions, `cd` tracking, bad paths, SSH create/connect/exec, **`~/.ssh/config` alias resolution**, explicit values win, **ProxyJump rejected**, **key file loading**. |
+| `test/bridgeServer.test.js` | 6 | **Real WebSocket**: bad token rejected, good token accepted, run streams output + result, exit 5, **malformed command reported as invalid**, SSH session create + run. |
 | `test/sshSession.test.js` | 5 | Persistent ssh2: connect once, exec per command, stdout/stderr/exit, cwd prefix, close. |
 | `test/browserAdapter.test.js` | 4 | Manifest validity (MV3, matches), adapter surface, site profiles, background protocol strings. |
-| `test/adapterDom.test.js` | 10 | **jsdom DOM**: toolbar injection, Python block skipped, Run dispatch, Send Output fills the input, **append below existing text**, **replace mode**, **Prompt button**, **no duplicate prompt**, manual Enter command, panel resize grip + collapse/restore. |
-| `test/adapters.test.js` | 5 | Legacy Electron adapter surface kept for reference (no Electron dependency required to run). |
+| `test/adapterDom.test.js` | 11 | **jsdom DOM**: toolbar injection, Python block skipped, Run dispatch, **live block text re-read at click time**, Send Output fills the input, **append below existing text**, **replace mode**, **Prompt button**, **no duplicate prompt**, manual Enter command, panel resize grip + collapse/restore. |
+| `test/quoteGuard.test.js` | 14 | **Quote scanner**: balanced vs unterminated detection, line/column reporting, `#` comments, URL `#`, `""`/backtick escapes, here-strings, bash `\"`. |
+| `test/sshConfig.test.js` | 8 | **`~/.ssh/config` parser**: block order, alias → host/user/port/key, `*`/`?` wildcards, global defaults, ProxyJump exposure, missing file, `~` expansion. |
 | `test/adapters.test.js` | 5 | Legacy Electron adapter scripts are syntactically valid and expose expected buttons. |
 
 ---

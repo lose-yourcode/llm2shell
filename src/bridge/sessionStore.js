@@ -25,6 +25,8 @@ class SessionStore {
     this.defaultCwd = options.cwd || homeDir();
     // Injectable SSH session factory (tests / custom transports).
     this.sshFactory = options.sshFactory || null;
+    // Injectable ~/.ssh/config resolver (tests pass a stub).
+    this.sshConfigResolver = options.sshConfigResolver || null;
     // Always have one usable session.
     this.create(options.defaultName || 'default', this.defaultCwd);
   }
@@ -44,19 +46,25 @@ class SessionStore {
 
   /**
    * Create a persistent SSH session. The connection is opened by `connect()`.
+   *
+   * `config.host` may be an `~/.ssh/config` alias (e.g. `myserver`). When it is,
+   * HostName/User/Port/IdentityFile are filled in from the config file, so the
+   * user can type the same alias they use in their own shell.
    */
   createSSH(config = {}) {
+    const resolved = this._resolveSshTarget(config);
     const id = 'ssh-' + ++this._n;
     const session = {
       id,
-      name: config.name || ((config.username || 'user') + '@' + (config.host || 'host')),
+      name: config.name || ((resolved.username || 'user') + '@' + (resolved.host || 'host')),
       type: 'ssh',
       cwd: config.cwd || '~',
-      host: config.host,
-      port: config.port || 22,
-      username: config.username,
+      host: resolved.host,
+      port: resolved.port || 22,
+      username: resolved.username,
       status: 'disconnected',
       ssh: null,
+      alias: resolved.alias || null,
       createdAt: new Date().toISOString()
     };
 
@@ -65,10 +73,53 @@ class SessionStore {
       const SshSession = require('./sshSession');
       return new SshSession(cfg);
     });
-    session.ssh = factory(config);
+    session.ssh = factory(resolved);
 
     this.sessions.set(id, session);
     return session;
+  }
+
+  /**
+   * Merge an SSH config alias and a key file into a usable ssh2 config.
+   * Throws a readable error when the alias needs something ssh2 cannot do.
+   */
+  _resolveSshTarget(config) {
+    const cfg = Object.assign({}, config);
+    const alias = String(cfg.host || '').trim();
+
+    if (alias && !cfg.noAliasLookup) {
+      let resolved = null;
+      try {
+        const resolver = this.sshConfigResolver || require('./sshConfig').resolveHost;
+        resolved = resolver(alias);
+      } catch (_) {
+        resolved = null;
+      }
+      if (resolved) {
+        if (resolved.proxyJump || resolved.proxyCommand) {
+          const via = resolved.proxyJump ? 'ProxyJump ' + resolved.proxyJump : 'ProxyCommand';
+          throw new Error(
+            'SSH alias "' + alias + '" uses ' + via + ', which this Bridge does not support. ' +
+              'Use the HostName (' + resolved.host + ') directly, or reach the host some other way.'
+          );
+        }
+        cfg.host = resolved.host;
+        cfg.port = cfg.port || resolved.port;
+        cfg.username = cfg.username || resolved.username;
+        cfg.identityFile = cfg.identityFile || resolved.identityFile;
+        cfg.alias = resolved.alias;
+      }
+    }
+
+    if (cfg.identityFile && !cfg.privateKey) {
+      const file = cfg.identityFile;
+      try {
+        cfg.privateKey = fs.readFileSync(file);
+      } catch (e) {
+        throw new Error('Cannot read SSH key "' + file + '": ' + e.message);
+      }
+    }
+    return cfg;
   }
 
   async connect(id) {

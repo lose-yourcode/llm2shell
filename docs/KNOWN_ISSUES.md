@@ -8,7 +8,7 @@ Severity: 🔴 blocks a core acceptance item · 🟠 degrades experience · 🟡
 
 | # | Issue | Severity | Notes |
 |---|---|---|---|
-| 1 | **SSH is persistent *exec*, not an interactive shell.** One `ssh2` connection per session; each command runs in a new channel with `pty:false`. | 🟡 | Interactive TUI (`vim`, `top`, nested `ssh`, password prompts) is not supported. Key/agent auth and host-key verification are not wired into the panel yet. |
+| 1 | **SSH is persistent *exec*, not an interactive shell.** One `ssh2` connection per session; each command runs in a new channel with `pty:false`. | 🟡 | Interactive TUI (`vim`, `top`, nested `ssh`, password prompts) is not supported. Password **and key-file** auth work, and `~/.ssh/config` aliases resolve; ssh-agent and host-key pinning do not. |
 | 2 | **No persistent PTY / tmux.** Local commands are stateless child processes; SSH commands are exec-per-command on a persistent connection. | 🟠 | A10/A11 are not met for local shells. A future PTY backend + detached session host would be needed. |
 | 3 | **No full interactive terminal.** The panel streams output and accepts typed commands, but there is no raw TTY. | 🟠 | Interactive programs need a PTY backend + xterm.js panel. |
 | 4 | **Sessions are in-memory.** Restarting the Bridge creates a fresh default session. | 🟡 | Persist `SessionStore` to disk if needed. |
@@ -32,6 +32,22 @@ things can still bite:
   the value is rewritten. Plain typed text and pasted output are unaffected.
 - If a site's editor reports an empty `innerText` while showing a placeholder, the first append
   looks like a replace. Switching to `Replace` explicitly, or typing one character first, avoids it.
+
+**Truncated blocks.** A code block is read again from the DOM **at click time**, so a block that is
+still streaming when the toolbar appears no longer runs a half-copied command. As a second line of
+defence the Bridge scans the command for an unterminated quote and refuses to run it:
+
+```
+[LLM2Shell] Refusing to run: unterminated " starting at line 1, column 12.
+The block looks truncated or malformed, so only part of the command would execute.
+  > ssh myserver "systemctl status nginx --no-pager
+Re-copy the block (or ask the model to repeat it) and run again.
+```
+
+The scanner understands single/double quotes, `''` and `""` escapes, PowerShell backtick escapes,
+bash `\"`, `#` comments and here-strings. It is conservative: anything ambiguous counts as
+balanced, so it never blocks a command it does not understand. Multi-line quoted commands are
+**not** flagged — PowerShell accepts a newline inside a double-quoted string.
 
 ## Bridge / security
 

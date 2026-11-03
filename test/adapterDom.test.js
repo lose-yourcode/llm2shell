@@ -103,6 +103,20 @@ describe('browser adapter DOM behaviour', () => {
     expect(runCall.command).toContain('Get-ChildItem');
   });
 
+  it('runs the live block text, not the snapshot taken at injection time', () => {
+    // Streaming replies append to <code> after the toolbar was injected.
+    const code = document.querySelector('pre code');
+    code.textContent = 'Get-ChildItem -Path C:\\Temp';
+
+    const runBtn = Array.from(document.querySelectorAll('.awt-run-btn')).find(
+      (b) => b.textContent === 'Run'
+    );
+    runBtn.click();
+
+    const runCall = calls.filter((c) => c.type === 'awt:run').pop();
+    expect(runCall.command).toBe('Get-ChildItem -Path C:\\Temp');
+  });
+
   it('Send Output fills the AI input box with the result', () => {
     const listener = listeners[0];
     listener({

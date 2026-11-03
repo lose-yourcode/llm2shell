@@ -32,6 +32,19 @@ non-interactively.
 So if you type `ssh ...` into the panel's **local** session, you get exactly the behaviour you
 saw: connect → run → disconnect, every time. That is by design, not a bug.
 
+### 2.1 Why it can look like "it just hangs after the warning"
+
+The Bridge runs commands with **no stdin**. If the host asks for a password, a key passphrase, or
+a `yes/no` host-key confirmation, ssh has nowhere to read the answer from, so the command sits
+there until the 60 s timeout fires and you see `[exit 124 · failed]` and nothing else.
+
+That is not a connection problem — it is an authentication prompt nobody can answer. Two ways out:
+
+- **Use `+ SSH`** in the panel. The Bridge authenticates with the password (or, later, a key) you
+  type into the form, so no prompt is ever needed. This is the recommended path.
+- Or make the host non-interactive: install a key, run `ssh-keyscan` once for the host key, and
+  add `-T` to silence the PTY warning.
+
 ## 3. The choice
 
 | Option | What you get | Trade-off |
@@ -83,6 +96,38 @@ Key files:
 6. Type `cd /var/log` in the panel's `$` input and press Enter; the session cwd updates, and
    the next command runs there.
 7. **Send Output** works exactly as for local sessions.
+
+### 5.1 Using an alias from `~/.ssh/config`
+
+The **host** field accepts the same alias you type in your own shell. If `~/.ssh/config` has:
+
+```
+Host myserver
+  HostName 203.0.113.10
+  User deploy
+  Port 2222
+  IdentityFile ~/.ssh/myserver_ed25519
+```
+
+then typing `myserver` and clicking **Connect** is enough: the Bridge fills in HostName, User,
+Port and the key file. You do not need to retype any of it.
+
+- Values you type explicitly always win over the config file.
+- Options follow OpenSSH semantics: the **first** value found wins, scanning top to bottom. Put
+  `Host *` defaults at the **bottom** of the file, otherwise they override the specific blocks
+  above them.
+- `Include`, `Match` blocks, `ProxyJump` and `ProxyCommand` are **not** supported. A host that
+  needs a jump host is rejected with an explicit error naming the option, instead of failing
+  later with a confusing timeout.
+
+### 5.2 Key authentication
+
+Put a path in the **key** field (`~/.ssh/id_ed25519`, `~/.ssh/myserver_ed25519`, …). The Bridge
+reads the file and authenticates with it; an encrypted key needs its passphrase in the password
+field. Leave the key field empty to use a password.
+
+Not supported yet: ssh-agent (`SSH_AUTH_SOCK`, Pageant) and host-key pinning. Host keys are
+accepted as presented — verify the fingerprint out of band if that matters for your setup.
 
 ## 6. Why `exec` uses `pty:false`
 

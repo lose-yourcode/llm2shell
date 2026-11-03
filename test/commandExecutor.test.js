@@ -39,4 +39,30 @@ describe('CommandExecutor (real child process)', () => {
     await ex.run({ command: cmd, timeout: 30000, onData: (d) => { streamed += d; } });
     expect(streamed).toContain('stream-me');
   }, 40000);
+
+  it('refuses a command with an unterminated quote instead of spawning it', async () => {
+    const ex = new CommandExecutor();
+    const cmd = 'ssh myserver "systemctl status nginx --no-pager';
+    let streamed = '';
+    const res = await ex.run({ command: cmd, timeout: 30000, onData: (d) => { streamed += d; } });
+
+    expect(res.invalid).toBe(true);
+    expect(res.exitCode).toBe(-1);
+    expect(res.stderr).toContain('Refusing to run');
+    expect(res.stderr).toContain('unterminated');
+    // Nothing was executed, so there is no parser dump from the shell.
+    expect(res.stderr).not.toContain('ParserError');
+    expect(streamed).toContain('Refusing to run');
+  }, 40000);
+
+  it('still runs a multi-line quoted command', async () => {
+    const ex = new CommandExecutor();
+    const cmd = isWin
+      ? 'Write-Output "line one;\nline two"'
+      : 'echo "line one;\nline two"';
+    const res = await ex.run({ command: cmd, timeout: 30000 });
+    expect(res.exitCode).toBe(0);
+    expect(res.stdout).toContain('line one');
+    expect(res.stdout).toContain('line two');
+  }, 40000);
 });
