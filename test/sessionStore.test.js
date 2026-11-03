@@ -159,6 +159,34 @@ describe('SessionStore', () => {
     try { fs.unlinkSync(keyPath); } catch (_) {}
   });
 
+  it('loads the key from an ~/.ssh/config alias IdentityFile', () => {
+    const fs = require('fs');
+    const os = require('os');
+    const path = require('path');
+    const keyPath = path.join(os.tmpdir(), 'awt-test-alias-key-' + Date.now());
+    fs.writeFileSync(keyPath, '-----BEGIN OPENSSH PRIVATE KEY-----\nalias-key\n', 'utf8');
+
+    let cfgSeen = null;
+    const store = new SessionStore({
+      cwd: process.cwd(),
+      sshFactory: (cfg) => { cfgSeen = cfg; return { connect: async () => {}, close: () => {} }; },
+      // Mimics ~/.ssh/config: "Host myserver" with HostName/User/IdentityFile.
+      sshConfigResolver: (alias) =>
+        alias === 'myserver'
+          ? { alias: 'myserver', host: '203.0.113.10', port: 2222, username: 'deploy', identityFile: keyPath }
+          : null
+    });
+
+    // Browser form: host="myserver", password blank, key path blank.
+    const s = store.createSSH({ host: 'myserver', username: '', password: '', identityFile: '' });
+    expect(s.host).toBe('203.0.113.10');
+    expect(s.username).toBe('deploy');
+    expect(Buffer.isBuffer(cfgSeen.privateKey)).toBe(true);
+    expect(cfgSeen.privateKey.toString()).toContain('alias-key');
+
+    try { fs.unlinkSync(keyPath); } catch (_) {}
+  });
+
   it('reports a readable error for a missing key file', () => {
     const store = new SessionStore({
       cwd: process.cwd(),
