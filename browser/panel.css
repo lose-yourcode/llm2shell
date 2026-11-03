@@ -47,8 +47,9 @@
 
 #awt-panel.awt-collapsed .awt-out,
 #awt-panel.awt-collapsed .awt-inputrow,
+#awt-panel.awt-collapsed .awt-jump,
 #awt-panel.awt-collapsed .awt-resize {
-  display: none;
+  display: none !important;
 }
 
 #awt-panel.awt-collapsed .awt-sshform {
@@ -172,6 +173,42 @@
   word-break: break-word;
   background: #101216;
   color: #e6e9ef;
+}
+
+/* One header per command, so a transcript stays readable. */
+#awt-panel .awt-cmdline {
+  display: block;
+  color: #7fb2ff;
+  font-weight: 600;
+  border-left: 2px solid #4f8cff;
+  padding-left: 6px;
+  margin: 8px 0 2px -4px;
+}
+
+#awt-panel .awt-cmdline:first-child {
+  margin-top: 0;
+}
+
+/* Shown only when the user has scrolled away from the newest output. */
+#awt-panel .awt-jump {
+  position: absolute;
+  right: 16px;
+  bottom: 44px;
+  z-index: 5;
+  display: none;
+  background: #2c313a;
+  color: #cbd5e1;
+  border: 1px solid #4a5568;
+  border-radius: 12px;
+  padding: 2px 9px;
+  font: 10px/1.5 system-ui, sans-serif;
+  cursor: pointer;
+  opacity: 0.96;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+}
+
+#awt-panel .awt-jump:hover {
+  background: #3a4150;
 }
 
 #awt-panel .awt-stderr {

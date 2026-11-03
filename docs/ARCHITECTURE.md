@@ -18,7 +18,7 @@ Three cooperating pieces:
 │      ├─ MutationObserver → find <pre><code>                                 │
 │      ├─ classify language (class/attr + content heuristic)                  │
 │      ├─ inject Run / Run All / Copy / Select Terminal                       │
-│      ├─ floating panel: streaming output, manual input, Send Output         │
+│      ├─ floating panel: transcript, manual input, Send Output / Send All   │
 │      ├─ Prompt button → prompt.js text into the AI box                      │
 │      └─ insertText(text, append|replace) → AI input box                     │
 │                                                                             │

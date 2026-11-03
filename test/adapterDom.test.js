@@ -70,7 +70,11 @@ describe('browser adapter DOM behaviour', () => {
     calls = installed.calls;
     listeners = installed.listeners;
 
-    window.LLM2Shell.install({ site: 'test', inputSelectors: ['textarea'] });
+    window.LLM2Shell.install({
+      site: 'test',
+      newChatUrl: 'https://example.test/new',
+      inputSelectors: ['textarea']
+    });
   });
 
   it('injects a toolbar with Run / Run All / Copy / Select Terminal', () => {
@@ -197,6 +201,70 @@ describe('browser adapter DOM behaviour', () => {
     input.dispatchEvent(ev);
     const runCall = calls.filter((c) => c.type === 'awt:run').pop();
     expect(runCall.command).toBe('Get-Location');
+  });
+
+  it('keeps a transcript: every command keeps its own header line', () => {
+    const input = document.querySelector('#awt-panel .awt-cmd');
+    const send = (cmd) => {
+      input.value = cmd;
+      const ev = new window.Event('keydown', { bubbles: true });
+      ev.key = 'Enter';
+      input.dispatchEvent(ev);
+    };
+    send('Get-Location');
+    send('Get-Date');
+
+    const out = document.querySelector('#awt-panel .awt-out');
+    const headers = Array.from(out.querySelectorAll('.awt-cmdline')).map((n) => n.textContent.trim());
+    expect(headers.slice(-2)).toEqual(['$ Get-Location', '$ Get-Date']);
+    // The first command is not wiped by the second one.
+    expect(out.textContent).toContain('$ Get-Location');
+    expect(headers.length).toBeGreaterThan(2);
+  });
+
+  it('Send All puts every result, each with its command, into the input', () => {
+    const listener = listeners[0];
+    const rec = (cmd, out) => ({
+      type: 'awt:result',
+      payload: {
+        reqId: 'r-' + cmd,
+        sessionId: 'sess-1',
+        command: cmd,
+        exitCode: 0,
+        stdout: out,
+        stderr: '',
+        status: 'success'
+      }
+    });
+    listener(rec('Get-Location', 'C:\\Users\\me\n'));
+    listener(rec('Get-Date', '2026-11-03\n'));
+
+    const ta = document.querySelector('textarea');
+    ta.value = '';
+    const modeSel = document.querySelector('#awt-panel .awt-mode');
+    modeSel.value = 'replace';
+    modeSel.dispatchEvent(new window.Event('change', { bubbles: true }));
+
+    document.querySelector('#awt-panel button[data-awt="sendall"]').click();
+
+    expect(ta.value).toContain('$ Get-Location');
+    expect(ta.value).toContain('$ Get-Date');
+    expect(ta.value).toContain('C:\\Users\\me');
+    expect(ta.value).toContain('2026-11-03');
+  });
+
+  it('has a jump-to-latest control and a new-chat button', () => {
+    const jump = document.querySelector('#awt-panel button[data-awt="jump"]');
+    expect(jump).toBeTruthy();
+    expect(() => jump.click()).not.toThrow();
+
+    const opened = [];
+    window.open = (url) => {
+      opened.push(url);
+      return {};
+    };
+    document.querySelector('#awt-panel button[data-awt="newchat"]').click();
+    expect(opened).toContain('https://example.test/new');
   });
 
   it('collapses and restores the panel, keeping the collapse button usable', () => {

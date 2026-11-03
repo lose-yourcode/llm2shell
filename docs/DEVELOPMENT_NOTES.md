@@ -7,6 +7,11 @@
   formatting prompt (`browser/content/prompt.js`).
 - **Append / Replace insert mode**: results go below whatever is already typed (default, persisted
   in `chrome.storage.local`) so multi-command transcripts accumulate in one message.
+- **Transcript panel**: every command keeps a `$ <command>` header (blue, left bar) and its output
+  below it; nothing is auto-cleared. `Send Output` sends the last result, `Send All` sends all of
+  them, each block prefixed with its command line.
+- **Scroll**: auto-follow only while pinned to the bottom, plus a `↓ latest` pill when scrolled up.
+- **New Chat** button opens the site's fresh-conversation URL (`newChatUrl` in the site profile).
 - Service worker: WebSocket client, token handshake, auto-reconnect, outbox, per-tab routing.
 - Local Bridge: HTTP health, WebSocket server, origin check, token auth, JSON protocol.
 - Execution: accurate `child_process` capture (separate stdout/stderr, exact exit code).
@@ -17,7 +22,7 @@
 - Logical sessions with `cd` tracking.
 - **Persistent SSH sessions** via `ssh2`: one connection per session, `exec` per command, tracked
   cwd, `+ SSH` form in the panel.
-- 93 automated tests, including real shell execution, a WebSocket end-to-end run, a jsdom
+- 96 automated tests, including real shell execution, a WebSocket end-to-end run, a jsdom
   DOM test for the adapter, and persistent SSH session tests.
 
 ## Highest-value next work

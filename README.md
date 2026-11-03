@@ -79,10 +79,22 @@ Keep this window open.
 3. Ask: *"Give me a PowerShell command to list the 5 largest files in my Downloads folder."*
 4. The code block now has **Run / Run All / Copy / Select Terminal**.
 5. Click **Run** → output streams into the floating panel (bottom-right).
-6. Click **Send Output** → the result is placed in the AI input box. Review and send.
+6. Click **Send Output** → the last result is placed in the AI input box. **Send All** sends every
+   result currently in the panel. Review and send.
 7. You can also type a command directly in the panel's `$` input and press Enter.
 8. Drag the **top-left grip** to resize the panel; click **– / +** (or double-click the title)
    to collapse and restore it.
+9. **New Chat** opens a fresh conversation with the AI in a new tab, for when the thread has grown
+   long. **Clear** empties the panel and its history.
+
+**The panel is a transcript.** Each command keeps its own header line (`$ <command>`, blue, with a
+left bar) and its output stays underneath, so a session of ten commands never loses track of which
+output belongs to which command. Nothing is wiped automatically — the panel only clears when you
+press **Clear**.
+
+**Scrolling.** The panel follows new output only while you are already at the bottom. Scroll up to
+read something and it stays put; a **↓ latest** pill appears in the corner, and clicking it jumps
+back to the newest line.
 
 **Append vs Replace.** The `Append` / `Replace` selector next to the session picker controls what
 happens to text already in the AI box. `Append` (default) adds the new result *below* what is
@@ -160,8 +172,12 @@ For reliable detection, tell the AI how to format commands. Ready-to-paste promp
 | Local PowerShell execution | Implemented, real-execution tested |
 | stdout / stderr / exit code capture | Implemented, tested |
 | Streaming output panel | Implemented |
+| Transcript view (per-command headers, nothing auto-cleared) | Implemented |
 | Manual command input | Implemented |
-| Send Output / Send Selected / Copy | Implemented |
+| Send Output / Send All / Send Selected / Copy | Implemented |
+| Auto-scroll that respects manual scrolling + "↓ latest" | Implemented |
+| Prompt button (one-click formatting prompt) | Implemented |
+| New Chat button | Implemented (site URL, new tab) |
 | Multiple logical sessions + `cd` tracking | Implemented |
 | Token-authenticated localhost Bridge | Implemented |
 | Persistent SSH sessions | Implemented via `ssh2` — one connection, per-command channels |
@@ -205,7 +221,7 @@ src/
   bridge/sshSession.js         persistent ssh2 connection (connect once, exec per command)
   bridge/sshConfig.js          ~/.ssh/config alias -> host/user/port/key
 scripts/run-tests.js     test launcher (workspace-local temp dir)
-test/                    Vitest suite (93 tests)
+test/                    Vitest suite (96 tests)
 docs/                    architecture, feasibility, test report, known issues, LLM prompt
 electron/ + renderer/    OPTIONAL legacy desktop shell (not the primary path)
 ```
@@ -224,7 +240,7 @@ electron/ + renderer/    OPTIONAL legacy desktop shell (not the primary path)
 
 ## Verification status
 
-- ✅ **93 automated tests pass** (12 files), including **real PowerShell execution**, a
+- ✅ **96 automated tests pass** (12 files), including **real PowerShell execution**, a
   **WebSocket end-to-end Bridge test** (hello → run → output → result with exact exit codes),
   a **jsdom DOM test** for toolbar injection + input refill + panel resize/collapse, and
   **persistent SSH** tests.

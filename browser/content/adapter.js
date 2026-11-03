@@ -41,7 +41,9 @@
     sessionId: null,
     sessions: [],
     lastResult: null,
+    history: [],
     outputText: '',
+    pinned: true,
     // 'append' keeps whatever is already in the AI box and adds the new text
     // below it; 'replace' overwrites the box. Append is the default because a
     // multi-step conversation produces several results that the model needs
@@ -224,11 +226,14 @@
       '<div class="awt-actions">' +
         '<button class="awt-btn awt-prompt-btn" data-awt="prompt" title="Put the formatting prompt into the AI input">Prompt</button>' +
         '<button class="awt-btn" data-awt="ssh" title="Connect a remote host">+ SSH</button>' +
-        '<button class="awt-btn" data-awt="send" title="Put the last output into the AI input">Send Output</button>' +
+        '<button class="awt-btn" data-awt="send" title="Put the last result into the AI input">Send Output</button>' +
+        '<button class="awt-btn" data-awt="sendall" title="Put every result in this panel into the AI input">Send All</button>' +
         '<button class="awt-btn" data-awt="sendsel" title="Send the selected text">Send Selected</button>' +
         '<button class="awt-btn" data-awt="copy" title="Copy the output">Copy</button>' +
         '<button class="awt-btn" data-awt="clear" title="Clear the panel">Clear</button>' +
+        '<button class="awt-btn" data-awt="newchat" title="Open a fresh conversation with the AI">New Chat</button>' +
       '</div>' +
+      '<button class="awt-jump" data-awt="jump" title="Jump to the latest output">↓ latest</button>' +
       '<div class="awt-sshform" style="display:none">' +
         '<input class="awt-ssh-host" placeholder="host or ssh alias" spellcheck="false" />' +
         '<input class="awt-ssh-port" value="22" title="port" />' +
@@ -271,6 +276,14 @@
         }
       });
     }
+
+    var outEl = panel.querySelector('.awt-out');
+    if (outEl) {
+      outEl.addEventListener('scroll', function () {
+        state.pinned = atBottom(outEl);
+        updateJump(outEl);
+      });
+    }
     var savedSize = null;
     function setCollapsed(collapsed) {
       if (collapsed) {
@@ -295,8 +308,11 @@
       if (!btn) return;
       var action = btn.getAttribute('data-awt');
       if (action === 'send') sendToAI('output');
+      else if (action === 'sendall') sendToAI('all');
       else if (action === 'sendsel') sendToAI('selected');
       else if (action === 'prompt') sendPrompt();
+      else if (action === 'jump') jumpToLatest();
+      else if (action === 'newchat') openNewChat();
       else if (action === 'copy') copyOutput();
       else if (action === 'clear') clearPanel();
       else if (action === 'collapse') setCollapsed(!panel.classList.contains('awt-collapsed'));
@@ -403,27 +419,66 @@
     } else {
       out.appendChild(document.createTextNode(text));
     }
-    out.scrollTop = out.scrollHeight;
     state.outputText += text;
+    // Follow the stream only while the user is already at the bottom, so
+    // scrolling up to read something is not yanked back on every chunk.
+    if (state.pinned) out.scrollTop = out.scrollHeight;
+    updateJump(out);
+  }
+
+  // Header line for each command, so a long transcript never loses track of
+  // which command produced which output.
+  function appendCommandHeader(command) {
+    if (!state.panel) return;
+    var out = state.panel.querySelector('.awt-out');
+    var span = document.createElement('span');
+    span.className = 'awt-cmdline';
+    // display:block in CSS supplies the line break; adding '\n' here would
+    // leave a blank line inside the <pre>.
+    span.textContent = '$ ' + command;
+    out.appendChild(span);
+    state.outputText += (state.outputText ? '\n' : '') + '$ ' + command + '\n';
+    if (state.pinned) out.scrollTop = out.scrollHeight;
+    updateJump(out);
+  }
+
+  function atBottom(out) {
+    if (!out) return true;
+    return out.scrollTop + out.clientHeight >= out.scrollHeight - 24;
+  }
+
+  function updateJump(out) {
+    if (!state.panel) return;
+    var btn = state.panel.querySelector('.awt-jump');
+    if (!btn) return;
+    var show = out ? !atBottom(out) : false;
+    btn.style.display = show ? 'block' : 'none';
+  }
+
+  function jumpToLatest() {
+    if (!state.panel) return;
+    var out = state.panel.querySelector('.awt-out');
+    state.pinned = true;
+    out.scrollTop = out.scrollHeight;
+    updateJump(out);
   }
 
   function clearPanel() {
     state.outputText = '';
-    if (state.panel) state.panel.querySelector('.awt-out').textContent = '';
+    state.history = [];
+    state.lastResult = null;
+    state.pinned = true;
+    if (state.panel) {
+      state.panel.querySelector('.awt-out').textContent = '';
+      updateJump(state.panel.querySelector('.awt-out'));
+    }
   }
 
   function copyOutput() {
     try { navigator.clipboard.writeText(state.outputText); } catch (e) {}
   }
 
-  function buildPayload(mode) {
-    var rec = state.lastResult;
-    if (!rec) {
-      if (!state.outputText.trim()) return null;
-      var only = truncate(redact(state.outputText));
-      return only.text + (only.truncated ? '\n…[truncated]' : '');
-    }
-
+  function blockFor(rec, mode) {
     var body = rec.stdout || '';
     if (rec.stderr) body += (body ? '\n' : '') + '[stderr]\n' + rec.stderr;
 
@@ -433,13 +488,31 @@
     }
 
     var t = truncate(redact(body));
-    var header = '[LLM2Shell] session=' + rec.sessionId + ' exit=' + rec.exitCode + ' status=' + rec.status;
-    // The command line is always included: in append mode several results pile
-    // up in the input box, and the model needs to know which command produced
-    // which output.
+    var header = '[LLM2Shell] session=' + rec.sessionId +
+      (rec.cwd ? ' cwd=' + rec.cwd : '') +
+      ' exit=' + rec.exitCode + ' status=' + rec.status;
+    // The command line is always included: a transcript with several results
+    // is unreadable without knowing which command produced which output.
     var text = header + '\n$ ' + rec.command + '\n\n' + t.text;
     if (t.truncated) text += '\n\n…[output truncated by LLM2Shell]';
     return text;
+  }
+
+  function buildPayload(mode) {
+    if (mode === 'all') {
+      if (!state.history.length) return null;
+      return state.history.map(function (rec) {
+        return blockFor(rec, 'output');
+      }).join('\n\n');
+    }
+
+    var rec = state.lastResult;
+    if (!rec) {
+      if (!state.outputText.trim()) return null;
+      var only = truncate(redact(state.outputText));
+      return only.text + (only.truncated ? '\n…[truncated]' : '');
+    }
+    return blockFor(rec, mode);
   }
 
   function sendToAI(mode) {
@@ -514,6 +587,34 @@
       '\n[LLM2Shell] ' + (res.mode === 'append' ? 'Appended' : 'Inserted') +
         ' the formatting prompt. Send it once per conversation.\n',
       'stderr'
+    );
+  }
+
+  // ------------------------------------------------------------ new chat
+  function newChatUrl() {
+    if (state.config.newChatUrl) return state.config.newChatUrl;
+    try {
+      return window.location.origin + '/';
+    } catch (e) {
+      return '';
+    }
+  }
+
+  function openNewChat() {
+    var url = newChatUrl();
+    if (!url) {
+      appendOut('\n[LLM2Shell] No new-chat URL for this site.\n', 'stderr');
+      return;
+    }
+    var win = null;
+    try {
+      win = window.open(url, '_blank', 'noopener');
+    } catch (e) {
+      win = null;
+    }
+    appendOut(
+      '\n[LLM2Shell] ' + (win ? 'Opened' : 'Could not open') + ' a new conversation: ' + url + '\n',
+      win ? 'stdout' : 'stderr'
     );
   }
 
@@ -618,8 +719,11 @@
   function runCommand(command, lang) {
     if (!command || !String(command).trim()) return;
     expandPanel();
-    clearPanel();
-    appendOut('$ ' + command + '\n', 'stdout');
+    // The panel is a transcript: previous commands and their output stay, each
+    // new one is introduced by its own `$ command` header. Clear it manually
+    // with the Clear button.
+    state.pinned = true;
+    appendCommandHeader(command);
     if (/^\s*ssh\s/i.test(command)) {
       var cur = null;
       for (var i = 0; i < state.sessions.length; i++) {
@@ -689,6 +793,8 @@
         break;
       case 'awt:result':
         state.lastResult = p;
+        state.history.push(p);
+        if (state.history.length > 50) state.history.shift();
         if (p.invalid) {
           appendOut('[LLM2Shell] Nothing was executed: the command is malformed.\n', 'stderr');
         } else if (p.timedOut) {
