@@ -39,6 +39,7 @@ bridge/.token
 coverage/
 .vitest-tmp/
 *.tmp
+commitmsg.txt
 
 # WorkBuddy workspace memory (internal)
 .workbuddy-ai/
