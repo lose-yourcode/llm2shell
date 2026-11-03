@@ -11,7 +11,7 @@
 | Metric | Result |
 |---|---|
 | Test files | 12 passed / 12 |
-| Tests | **98 passed / 98** |
+| Tests | **102 passed / 102** |
 | Real PowerShell executions | 6 (via `CommandExecutor`) |
 | WebSocket end-to-end Bridge runs | 4 (local exit 0, local exit 5, malformed command, SSH session) |
 | Persistent SSH tests | 7 (mocked ssh2) + 13 store/config tests |
@@ -19,7 +19,7 @@
 
 ```
  Test Files  12 passed (12)
-      Tests  98 passed (98)
+      Tests  102 passed (102)
    Duration  4.95s
 ```
 
@@ -37,7 +37,7 @@
 | `test/bridgeServer.test.js` | 6 | **Real WebSocket**: bad token rejected, good token accepted, run streams output + result, exit 5, **malformed command reported as invalid**, SSH session create + run. |
 | `test/sshSession.test.js` | 5 | Persistent ssh2: connect once, exec per command, stdout/stderr/exit, cwd prefix, close. |
 | `test/browserAdapter.test.js` | 4 | Manifest validity (MV3, matches), adapter surface, site profiles, background protocol strings. |
-| `test/adapterDom.test.js` | 16 | **jsdom DOM**: toolbar injection, **toolbar gets its own line inside a flex-row code container**, **toolbar goes above a flex row that has other children**, Python block skipped, Run dispatch, **live block text re-read at click time**, Send Output fills the input, **append below existing text**, **replace mode**, **Prompt button**, **no duplicate prompt**, **transcript keeps one header per command**, **Send All includes every result**, **jump-to-latest + New Chat**, manual Enter command, panel resize grip + collapse/restore. |
+| `test/adapterDom.test.js` | 20 | **jsdom DOM**: toolbar injection, **Gemini-style `<code-block>` gets buttons via its header label**, **layout class names are not read as a language**, **Python block still skipped**, **block whose text arrives late is picked up**, **toolbar gets its own line inside a flex-row code container**, **toolbar goes above a flex row that has other children**, Run dispatch, **live block text re-read at click time**, Send Output fills the input, **append below existing text**, **replace mode**, **Prompt button**, **no duplicate prompt**, **transcript keeps one header per command**, **Send All includes every result**, **jump-to-latest + New Chat**, manual Enter command, panel resize grip + collapse/restore. |
 | `test/quoteGuard.test.js` | 14 | **Quote scanner**: balanced vs unterminated detection, line/column reporting, `#` comments, URL `#`, `""`/backtick escapes, here-strings, bash `\"`. |
 | `test/sshConfig.test.js` | 8 | **`~/.ssh/config` parser**: block order, alias → host/user/port/key, `*`/`?` wildcards, global defaults, ProxyJump exposure, missing file, `~` expansion. |
 | `test/adapters.test.js` | 5 | Legacy Electron adapter scripts are syntactically valid and expose expected buttons. |

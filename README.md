@@ -159,6 +159,8 @@ For reliable detection, tell the AI how to format commands. Ready-to-paste promp
 | `The string is missing the terminator: "` / `ParserError` | The block was captured truncated, or the model emitted an unbalanced quote | Fixed: the Bridge now refuses the command with the exact line/column and never spawns a shell. Re-copy the block and run again |
 | `[exit 124 · failed]` with no output | The command waited for stdin (password prompt, `read`, a TUI program) | Use **+ SSH**, or make the command non-interactive |
 | No **Run** buttons on a block | The block is not tagged as a shell language and the heuristic skipped it | Click **Prompt** once, or tag the block `powershell` / `bash` / `sh` |
+| No **Run** buttons on **Gemini** specifically | Fixed: Gemini puts the language in a header span, and its `<pre class="code-block-internal">` used to be read as a language tag | Reload the extension, then reload the Gemini tab |
+| A block still has no buttons | The site changed its DOM | Run `LLM2Shell.debug()` in the console (DevTools → Console → context dropdown → the LLM2Shell content script). It lists every `<pre>` with the detected language, whether it passed the shell check, and its text length |
 | The status dot stays red | Bridge not running, or the token does not match | `npm start`, then paste the printed token in **Options → Save & Connect** |
 
 ---
@@ -221,7 +223,7 @@ src/
   bridge/sshSession.js         persistent ssh2 connection (connect once, exec per command)
   bridge/sshConfig.js          ~/.ssh/config alias -> host/user/port/key
 scripts/run-tests.js     test launcher (workspace-local temp dir)
-test/                    Vitest suite (98 tests)
+test/                    Vitest suite (102 tests)
 docs/                    architecture, feasibility, test report, known issues, LLM prompt
 electron/ + renderer/    OPTIONAL legacy desktop shell (not the primary path)
 ```
@@ -240,7 +242,7 @@ electron/ + renderer/    OPTIONAL legacy desktop shell (not the primary path)
 
 ## Verification status
 
-- ✅ **98 automated tests pass** (12 files), including **real PowerShell execution**, a
+- ✅ **102 automated tests pass** (12 files), including **real PowerShell execution**, a
   **WebSocket end-to-end Bridge test** (hello → run → output → result with exact exit codes),
   a **jsdom DOM test** for toolbar injection + input refill + panel resize/collapse, and
   **persistent SSH** tests.

@@ -25,10 +25,20 @@
   row), and falls back to inserting *above* the row when a gutter shares it. Toolbar CSS pins
   `flex: 0 0 auto`, `white-space: nowrap` and `writing-mode: horizontal-tb` so host styles cannot
   re-break it.
+- **Language detection is a whitelist, not "any single class token".** The old code returned
+  `code-block-internal` (Gemini's layout class on `<pre>`/`<code>`) as the block's language, which
+  made `shouldRun` reject every Gemini block. `detectLang()` now accepts only `language-*` /
+  `lang-*` classes, known language words, `data-language`/`lang` attributes, and finally a short
+  header label near the block (Gemini prints "PowerShell" in a header span).
+- **Text mutations re-check blocks.** Streaming can fill an already-mounted `<code>`; the observer
+  now also listens for `characterData` and added text nodes and re-runs detection on the enclosing
+  `<pre>`, so a block seen while empty still gets its toolbar.
+- `window.LLM2Shell.debug()` dumps every `<pre>` with its detected language, the shell verdict and
+  text length — the fastest way to diagnose a site-specific detection miss.
 - Logical sessions with `cd` tracking.
 - **Persistent SSH sessions** via `ssh2`: one connection per session, `exec` per command, tracked
   cwd, `+ SSH` form in the panel.
-- 98 automated tests, including real shell execution, a WebSocket end-to-end run, a jsdom
+- 102 automated tests, including real shell execution, a WebSocket end-to-end run, a jsdom
   DOM test for the adapter, and persistent SSH session tests.
 
 ## Highest-value next work

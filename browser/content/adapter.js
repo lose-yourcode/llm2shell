@@ -88,22 +88,56 @@
     return false;
   }
 
-  function detectLang(pre, code) {
-    var attrs = [
-      code.className,
-      pre.className,
-      code.getAttribute('data-language'),
-      pre.getAttribute('data-language'),
-      code.getAttribute('lang')
-    ];
-    for (var i = 0; i < attrs.length; i++) {
-      var a = attrs[i];
-      if (!a) continue;
-      var m = String(a).match(/language-([a-z0-9+#-]+)/i) || String(a).match(/lang-([a-z0-9+#-]+)/i);
-      if (m) return m[1];
-      if (/^[a-z0-9+#-]+$/i.test(String(a).trim())) return String(a).trim();
+  // Only these class tokens / header labels are treated as a language. Anything
+  // else (e.g. Gemini's "code-block-internal") is layout, not a language tag.
+  var LANG_WORDS = /^(bash|sh|shell|zsh|ksh|fish|powershell|pwsh|ps1|cmd|bat|batch|console|terminal|command|commandline|shell-session|shellsession|shellscript|python|py|javascript|js|jsx|typescript|ts|tsx|json|jsonc|yaml|yml|toml|ini|html|xml|svg|css|scss|less|sql|java|kotlin|swift|go|golang|rust|ruby|php|perl|lua|r|c|cpp|csharp|cs|dotnet|dockerfile|makefile|markdown|md|text|plaintext|txt|none)$/i;
+
+  function classTokens(el) {
+    if (!el || !el.className) return [];
+    var raw = typeof el.className === 'string' ? el.className : String(el.className.baseVal || '');
+    return raw.split(/\s+/).filter(Boolean);
+  }
+
+  // "language-powershell" / "lang-bash" / a bare known language token.
+  function langFromClasses(el) {
+    var toks = classTokens(el);
+    for (var i = 0; i < toks.length; i++) {
+      var m = toks[i].match(/^(?:language|lang)-(.+)$/i);
+      if (m) return m[1].toLowerCase();
+      if (LANG_WORDS.test(toks[i])) return toks[i].toLowerCase();
     }
     return '';
+  }
+
+  // Gemini prints the language in a header next to the block instead of on the
+  // <pre>. Walk a couple of ancestors and look for a short label like "PowerShell".
+  function langFromHeader(pre) {
+    var node = pre.parentElement;
+    for (var depth = 0; node && depth < 3; depth++, node = node.parentElement) {
+      var kids = node.querySelectorAll('span,div,header,h3,h4,button');
+      for (var i = 0; i < kids.length && i < 40; i++) {
+        var el = kids[i];
+        if (el.contains(pre)) continue;
+        var t = (el.textContent || '').trim();
+        if (!t || t.length > 20 || t.indexOf('\n') >= 0) continue;
+        if (LANG_WORDS.test(t)) return t.toLowerCase();
+      }
+    }
+    return '';
+  }
+
+  function detectLang(pre, code) {
+    var attr =
+      (code && code.getAttribute('data-language')) ||
+      (pre && pre.getAttribute('data-language')) ||
+      (code && code.getAttribute('lang')) ||
+      (pre && pre.getAttribute('lang'));
+    if (attr && String(attr).trim()) return String(attr).trim().toLowerCase();
+
+    var fromClass = langFromClasses(code) || langFromClasses(pre);
+    if (fromClass) return fromClass;
+
+    return langFromHeader(pre);
   }
 
   function redact(text) {
@@ -902,15 +936,38 @@
       setConnected(false);
     }
 
+    // Streaming replies fill an already-mounted <code> with text instead of
+    // adding a new <pre>. Without re-checking on text mutations those blocks are
+    // seen once while empty and never get a toolbar.
+    function recheck(node) {
+      if (!node) return;
+      var el = node.nodeType === 1 ? node : node.parentElement || node.parentNode;
+      if (!el || el.nodeType !== 1) return;
+      var pre = el.tagName === 'PRE' ? el : el.closest ? el.closest('pre') : null;
+      if (pre && pre.getAttribute('data-awt') !== '1') processPre(pre);
+    }
+
     var observer = new MutationObserver(function (muts) {
       for (var i = 0; i < muts.length; i++) {
-        var added = muts[i].addedNodes;
+        var mut = muts[i];
+        if (mut.type === 'characterData') {
+          recheck(mut.target);
+          continue;
+        }
+        var added = mut.addedNodes;
         for (var j = 0; j < added.length; j++) {
           if (added[j].nodeType === 1) scan(added[j]);
+          else if (added[j].nodeType === 3) recheck(added[j]);
         }
       }
     });
-    try { observer.observe(document.body, { childList: true, subtree: true }); } catch (e) {}
+    try {
+      observer.observe(document.body, {
+        childList: true,
+        subtree: true,
+        characterData: true
+      });
+    } catch (e) {}
 
     scan(document);
     var tries = 0;
@@ -921,5 +978,31 @@
     }, 1000);
   }
 
-  window.LLM2Shell = { install: install };
+  // `LLM2Shell.debug()` in the page console explains why a block has no buttons:
+  // detected language, whether it passed the shell check, and its text length.
+  function debug() {
+    var rows = [];
+    var pres = document.querySelectorAll('pre');
+    for (var i = 0; i < pres.length; i++) {
+      var pre = pres[i];
+      var code = pre.querySelector('code') || pre;
+      var text = code.innerText || code.textContent || '';
+      var lang = detectLang(pre, code);
+      rows.push({
+        injected: pre.getAttribute('data-awt') === '1',
+        lang: lang || '(none)',
+        shell: shouldRun(lang, text),
+        chars: text.length,
+        head: text.replace(/\s+/g, ' ').slice(0, 60)
+      });
+    }
+    if (console.table) console.table(rows);
+    return rows;
+  }
+
+  window.LLM2Shell = {
+    install: install,
+    rescan: function () { scan(document); },
+    debug: debug
+  };
 })();

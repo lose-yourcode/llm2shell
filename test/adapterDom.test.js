@@ -313,6 +313,69 @@ describe('browser adapter DOM behaviour', () => {
     expect(row.contains(pre)).toBe(true);
   });
 
+  it('adds Run buttons to a Gemini-style code block', async () => {
+    // Gemini wraps the block in <code-block> and labels the language in a header
+    // span; the <pre>/<code> only carry layout classes such as
+    // "code-block-internal". Those class names must not be read as a language.
+    const host = document.createElement('code-block');
+    host.innerHTML =
+      '<div class="code-block">' +
+      '<div class="code-block-decoration"><span class="code-block-decoration-text">PowerShell</span></div>' +
+      '<div class="formatted-code-block-internal-container">' +
+      '<pre class="code-block-internal"><code class="code-block-internal">Get-ChildItem -Path C:\\Temp</code></pre>' +
+      '</div></div>';
+    document.body.appendChild(host);
+    await new Promise((r) => setTimeout(r, 0));
+
+    const pre = host.querySelector('pre');
+    const bar = host.querySelector('.awt-toolbar');
+    expect(bar).toBeTruthy();
+    expect(pre.getAttribute('data-awt')).toBe('1');
+  });
+
+  it('does not treat an arbitrary hyphenated class name as a language', async () => {
+    const pre = document.createElement('pre');
+    pre.className = 'formatted-code-block-internal';
+    const code = document.createElement('code');
+    code.className = 'some-layout-class';
+    code.textContent = 'Get-Process';
+    pre.appendChild(code);
+    document.body.appendChild(pre);
+    await new Promise((r) => setTimeout(r, 0));
+
+    expect(pre.getAttribute('data-awt')).toBe('1');
+  });
+
+  it('still skips a Gemini-style block whose header says Python', async () => {
+    const host = document.createElement('code-block');
+    host.innerHTML =
+      '<div class="code-block">' +
+      '<div class="code-block-decoration"><span>Python</span></div>' +
+      '<pre class="code-block-internal"><code class="code-block-internal">print(1)</code></pre>' +
+      '</div>';
+    document.body.appendChild(host);
+    await new Promise((r) => setTimeout(r, 0));
+
+    expect(host.querySelector('.awt-toolbar')).toBeFalsy();
+  });
+
+  it('picks up a block whose text arrives after the element was created', async () => {
+    const pre = document.createElement('pre');
+    const code = document.createElement('code');
+    code.className = 'language-bash';
+    pre.appendChild(code);
+    document.body.appendChild(pre);
+    await new Promise((r) => setTimeout(r, 0));
+    expect(pre.getAttribute('data-awt')).toBeNull();
+
+    // Streaming: the text is appended into an already-present, empty <code>.
+    code.textContent = 'ls -la';
+    await new Promise((r) => setTimeout(r, 0));
+
+    expect(pre.getAttribute('data-awt')).toBe('1');
+    expect(pre.previousElementSibling.classList.contains('awt-toolbar')).toBe(true);
+  });
+
   it('collapses and restores the panel, keeping the collapse button usable', () => {
     const panel = document.getElementById('awt-panel');
     const btn = panel.querySelector('button[data-awt="collapse"]');
