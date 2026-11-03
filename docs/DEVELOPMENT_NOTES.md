@@ -8,7 +8,8 @@
 - Local Bridge: HTTP health, WebSocket server, origin check, token auth, JSON protocol.
 - Execution: accurate `child_process` capture (separate stdout/stderr, exact exit code).
 - Logical sessions with `cd` tracking.
-- 45 automated tests, including real PowerShell and a WebSocket end-to-end run.
+- 50 automated tests, including real shell execution, a WebSocket end-to-end run, and a jsdom
+  DOM test for the adapter.
 
 ## Highest-value next work
 

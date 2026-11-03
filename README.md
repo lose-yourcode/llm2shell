@@ -139,7 +139,7 @@ src/
   bridge/commandExecutor.js    accurate stdout/stderr/exit capture
   bridge/resultCollector.js    F06 result records
   bridge/sessionStore.js       logical sessions + cd tracking
-test/                    Vitest suite (45 tests)
+test/                    Vitest suite (50 tests)
 docs/                    architecture, feasibility, test report, known issues, LLM prompt
 electron/ + renderer/    OPTIONAL legacy desktop shell (not the primary path)
 ```
@@ -158,8 +158,9 @@ electron/ + renderer/    OPTIONAL legacy desktop shell (not the primary path)
 
 ## Verification status
 
-- ✅ **45 automated tests pass** (8 files), including **real PowerShell execution** and a
-  **WebSocket end-to-end Bridge test** (hello → run → output → result with exact exit codes).
+- ✅ **50 automated tests pass** (9 files), including **real PowerShell execution**, a
+  **WebSocket end-to-end Bridge test** (hello → run → output → result with exact exit codes),
+  and a **jsdom DOM test** for toolbar injection + input refill.
 - ✅ Bridge HTTP health endpoint returns 200; CLI prints a token.
 - ⚠️ **Live ChatGPT/Gemini DOM behaviour** (Run button placement, input refill) is **UNKNOWN**
   in the build environment — it requires a real browser session. Manual steps are in

@@ -404,6 +404,8 @@
 
   function scan(root) {
     var scope = root || document;
+    // A newly added node may itself be a <pre>; process it before descendants.
+    if (scope.nodeType === 1 && scope.tagName === 'PRE') processPre(scope);
     var pres = scope.querySelectorAll ? scope.querySelectorAll('pre') : [];
     for (var i = 0; i < pres.length; i++) processPre(pres[i]);
   }

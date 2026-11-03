@@ -10,16 +10,16 @@
 
 | Metric | Result |
 |---|---|
-| Test files | 8 passed / 8 |
-| Tests | **45 passed / 45** |
+| Test files | 9 passed / 9 |
+| Tests | **50 passed / 50** |
 | Real PowerShell executions | 4 (via `CommandExecutor`) |
 | WebSocket end-to-end Bridge runs | 2 (exit 0 and exit 5) |
 | Failures | 0 |
 
 ```
- Test Files  8 passed (8)
-      Tests  45 passed (45)
-   Duration  3.17s
+ Test Files  9 passed (9)
+      Tests  50 passed (50)
+   Duration  3.94s
 ```
 
 ---
@@ -35,6 +35,7 @@
 | `test/sessionStore.test.js` | 7 | Default session, create/get/list/kill, ≥3 sessions, `cd` tracking, rejection of bad paths. |
 | `test/bridgeServer.test.js` | 4 | **Real WebSocket**: bad token rejected, good token accepted, run streams output + result, exit 5. |
 | `test/browserAdapter.test.js` | 4 | Manifest validity (MV3, matches), adapter surface, site profiles, background protocol strings. |
+| `test/adapterDom.test.js` | 5 | **jsdom DOM**: toolbar injection, Python block skipped, Run dispatch, Send Output fills the input, manual Enter command. |
 | `test/adapters.test.js` | 5 | Legacy Electron adapter scripts are syntactically valid and expose expected buttons. |
 
 ---
@@ -87,10 +88,10 @@ executed here · **N/A** = not applicable to the browser pivot.
 |---|---|---|---|
 | A01 | Open ChatGPT and log in | **UNKNOWN** | Requires a real browser session. Design removes the embedded-login risk (normal tab). Steps below. |
 | A02 | Open Gemini and log in | **UNKNOWN** | Same as A01. |
-| A03 | Detect code block, show Run | **UNKNOWN** (logic PASS) | Detection is unit-tested (11 tests); live DOM placement not executed. |
+| A03 | Detect code block, show Run | **PASS (DOM) / UNKNOWN (live)** | jsdom test injects the Run toolbar for a shell block and skips a Python block; live-site placement not executed. |
 | A04 | Click Run executes locally | **PASS** | Bridge E2E ran real PowerShell (`exitCode 0`). |
 | A05 | Record stdout / stderr / exit | **PASS** | `RESULT_1`, `RESULT_2`, bridge result all show separate streams + exact codes. |
-| A06 | Fill output back into AI input | **UNKNOWN** | `fillInput()` implemented; needs a live page to confirm. |
+| A06 | Fill output back into AI input | **PASS (DOM) / UNKNOWN (live)** | jsdom test clicks Send Output and asserts the textarea contains the output and `exit=0`. |
 | A07 | ≥3 independent sessions | **PASS** (logic) | `sessionStore` test creates ≥3 unique sessions. |
 | A08 | SSH to a VPS | **N/A / FAIL** | Not implemented in the browser MVP. See known issues. |
 | A09 | Observe live terminal output | **PASS** (data) / **UNKNOWN** (visual) | E2E shows multiple `output` frames before `result`; panel rendering not visually tested. |
