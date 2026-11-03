@@ -307,6 +307,7 @@
       '<div class="awt-actions">' +
         '<button class="awt-btn awt-prompt-btn" data-awt="prompt" title="Put the formatting prompt into the AI input">Prompt</button>' +
         '<button class="awt-btn" data-awt="ssh" title="Connect a remote host">+ SSH</button>' +
+        '<button class="awt-btn awt-disconnect" data-awt="disconnect" title="Disconnect the selected SSH session">Disconnect</button>' +
         '<button class="awt-btn" data-awt="send" title="Put the last result into the AI input">Send Output</button>' +
         '<button class="awt-btn" data-awt="sendall" title="Put every result in this panel into the AI input">Send All</button>' +
         '<button class="awt-btn" data-awt="sendsel" title="Send the selected text">Send Selected</button>' +
@@ -405,6 +406,8 @@
         panel.querySelector('.awt-sshform').style.display = 'none';
       } else if (action === 'ssh-connect') {
         connectSSH();
+      } else if (action === 'disconnect') {
+        disconnectSession();
       }
     });
 
@@ -757,6 +760,29 @@
     );
   }
 
+  // --------------------------------------------------------- SSH disconnect
+  function disconnectSession() {
+    if (!state.panel) return;
+    var id = state.sessionId;
+    var sess = null;
+    for (var i = 0; i < state.sessions.length; i++) {
+      if (state.sessions[i].id === id) { sess = state.sessions[i]; break; }
+    }
+    if (!sess) {
+      appendOut('\n[LLM2Shell] No session selected to disconnect.\n', 'stderr');
+      return;
+    }
+    if (sess.type !== 'ssh') {
+      appendOut(
+        '\n[LLM2Shell] Only SSH sessions can be disconnected — local sessions are stateless.\n',
+        'stderr'
+      );
+      return;
+    }
+    appendOut('\n[LLM2Shell] Disconnecting "' + (sess.name || sess.id) + '"…\n', 'stdout');
+    sendRuntime({ type: 'awt:killSession', sessionId: sess.id });
+  }
+
   // -------------------------------------------------------------- detection
   function makeButton(label, title, fn) {
     var b = document.createElement('button');
@@ -974,6 +1000,11 @@
             'stdout'
           );
         }
+        sendRuntime({ type: 'awt:sessions' });
+        break;
+      case 'awt:session.killed':
+        if (state.sessionId === p.sessionId) state.sessionId = null;
+        appendOut('\n[LLM2Shell] Session "' + (p.sessionId || '?') + '" disconnected.\n', 'stdout');
         sendRuntime({ type: 'awt:sessions' });
         break;
       case 'awt:status':

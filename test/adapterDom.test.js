@@ -400,4 +400,28 @@ describe('browser adapter DOM behaviour', () => {
     expect(panel.classList.contains('awt-collapsed')).toBe(false);
     expect(btn.textContent).toBe('–');
   });
+
+  it('Disconnect sends awt:killSession for the selected SSH session', () => {
+    calls.length = 0;
+    listeners[0]({
+      type: 'awt:sessions',
+      payload: { sessions: [{ id: 'ssh-1', name: 'deploy@myserver', type: 'ssh' }] }
+    });
+    const disconnectBtn = document.querySelector('#awt-panel button[data-awt="disconnect"]');
+    expect(disconnectBtn).toBeTruthy();
+    disconnectBtn.click();
+    const kill = calls.find((c) => c.type === 'awt:killSession');
+    expect(kill).toBeTruthy();
+    expect(kill.sessionId).toBe('ssh-1');
+  });
+
+  it('does not send kill for a local (non-SSH) session', () => {
+    calls.length = 0;
+    listeners[0]({
+      type: 'awt:sessions',
+      payload: { sessions: [{ id: 'sess-1', name: 'default', type: 'local' }] }
+    });
+    document.querySelector('#awt-panel button[data-awt="disconnect"]').click();
+    expect(calls.some((c) => c.type === 'awt:killSession')).toBe(false);
+  });
 });

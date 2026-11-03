@@ -185,6 +185,7 @@ For reliable detection, tell the AI how to format commands. Ready-to-paste promp
 | Multiple logical sessions + `cd` tracking | Implemented |
 | Token-authenticated localhost Bridge | Implemented |
 | Persistent SSH sessions | Implemented via `ssh2` — one connection, per-command channels |
+| SSH session disconnect | Implemented — the **Disconnect** button closes the persistent connection and refreshes the session list |
 | Interactive PTY / installer | **Not in browser MVP** (see known issues) |
 
 ---

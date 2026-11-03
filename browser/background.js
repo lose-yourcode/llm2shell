@@ -177,6 +177,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 
+  if (message.type === 'awt:killSession') {
+    const reqId = 'k_' + Date.now();
+    if (sender.tab && sender.tab.id != null) pendingTabs.set(reqId, sender.tab.id);
+    send({ type: 'session.kill', reqId, sessionId: message.sessionId });
+    sendResponse({ ok: connected, reqId });
+    return true;
+  }
+
   if (message.type === 'awt:status') {
     ensureConnection();
     sendResponse({ connected });
