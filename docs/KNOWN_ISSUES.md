@@ -8,9 +8,9 @@ Severity: 🔴 blocks a core acceptance item · 🟠 degrades experience · 🟡
 
 | # | Issue | Severity | Notes |
 |---|---|---|---|
-| 1 | **No SSH support** in the browser MVP. | 🟠 | The Bridge executes local commands only. The legacy `electron/` shell has `ssh2`; adding SSH to the Bridge is a transport backend, not a protocol change. |
-| 2 | **No persistent PTY / tmux.** Commands are stateless child processes. | 🟠 | A10/A11 are not met. A future PTY backend + detached session host would be needed. |
-| 3 | **No full interactive terminal.** The panel streams output and accepts typed commands, but there is no raw TTY (no `vim`, no interactive prompts). | 🟠 | Interactive programs need a PTY backend + xterm.js panel. |
+| 1 | **SSH is persistent *exec*, not an interactive shell.** One `ssh2` connection per session; each command runs in a new channel with `pty:false`. | 🟡 | Interactive TUI (`vim`, `top`, nested `ssh`, password prompts) is not supported. Key/agent auth and host-key verification are not wired into the panel yet. |
+| 2 | **No persistent PTY / tmux.** Local commands are stateless child processes; SSH commands are exec-per-command on a persistent connection. | 🟠 | A10/A11 are not met for local shells. A future PTY backend + detached session host would be needed. |
+| 3 | **No full interactive terminal.** The panel streams output and accepts typed commands, but there is no raw TTY. | 🟠 | Interactive programs need a PTY backend + xterm.js panel. |
 | 4 | **Sessions are in-memory.** Restarting the Bridge creates a fresh default session. | 🟡 | Persist `SessionStore` to disk if needed. |
 | 5 | **No installer / store listing.** Load unpacked only. | 🟡 | Publish to Chrome Web Store / Edge Add-ons when stable. |
 

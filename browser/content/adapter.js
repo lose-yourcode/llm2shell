@@ -176,11 +176,20 @@
         '<span class="awt-title">LLM2Shell</span>' +
         '<select class="awt-session" title="Session"><option>default</option></select>' +
         '<span class="awt-spacer"></span>' +
+        '<button class="awt-btn" data-awt="ssh" title="Connect a remote host">+ SSH</button>' +
         '<button class="awt-btn" data-awt="send" title="Put the last output into the AI input">Send Output</button>' +
         '<button class="awt-btn" data-awt="sendsel" title="Send the selected text">Send Selected</button>' +
         '<button class="awt-btn" data-awt="copy" title="Copy the output">Copy</button>' +
         '<button class="awt-btn" data-awt="clear" title="Clear the panel">Clear</button>' +
         '<button class="awt-btn awt-icon" data-awt="collapse" title="Collapse / expand">–</button>' +
+      '</div>' +
+      '<div class="awt-sshform" style="display:none">' +
+        '<input class="awt-ssh-host" placeholder="host" spellcheck="false" />' +
+        '<input class="awt-ssh-port" value="22" title="port" />' +
+        '<input class="awt-ssh-user" placeholder="user" spellcheck="false" />' +
+        '<input class="awt-ssh-pass" type="password" placeholder="password" />' +
+        '<button class="awt-btn" data-awt="ssh-connect">Connect</button>' +
+        '<button class="awt-btn" data-awt="ssh-cancel">Cancel</button>' +
       '</div>' +
       '<pre class="awt-out"></pre>' +
       '<div class="awt-inputrow">' +
@@ -214,6 +223,14 @@
       else if (action === 'copy') copyOutput();
       else if (action === 'clear') clearPanel();
       else if (action === 'collapse') panel.classList.toggle('awt-collapsed');
+      else if (action === 'ssh') {
+        var form = panel.querySelector('.awt-sshform');
+        form.style.display = form.style.display === 'none' ? 'flex' : 'none';
+      } else if (action === 'ssh-cancel') {
+        panel.querySelector('.awt-sshform').style.display = 'none';
+      } else if (action === 'ssh-connect') {
+        connectSSH();
+      }
     });
   }
 
@@ -316,6 +333,46 @@
       appendOut('\n[LLM2Shell] Placed the result in the AI input box. Review and send.\n', 'stderr');
     } else {
       appendOut('\n[LLM2Shell] Could not find the AI input box.\n', 'stderr');
+    }
+  }
+
+  // ---------------------------------------------------------------- SSH form
+  function connectSSH() {
+    if (!state.panel) return;
+    var host = state.panel.querySelector('.awt-ssh-host').value.trim();
+    var port = parseInt(state.panel.querySelector('.awt-ssh-port').value, 10) || 22;
+    var username = state.panel.querySelector('.awt-ssh-user').value.trim();
+    var password = state.panel.querySelector('.awt-ssh-pass').value;
+
+    if (!host || !username) {
+      appendOut('\n[LLM2Shell] SSH host and username are required.\n', 'stderr');
+      return;
+    }
+
+    expandPanel();
+    appendOut('\n[LLM2Shell] Connecting to ' + username + '@' + host + ':' + port + '…\n', 'stdout');
+    state.panel.querySelector('.awt-ssh-pass').value = '';
+    state.panel.querySelector('.awt-sshform').style.display = 'none';
+
+    try {
+      chrome.runtime.sendMessage(
+        {
+          type: 'awt:createSession',
+          session: {
+            sessionType: 'ssh',
+            name: username + '@' + host,
+            host: host,
+            port: port,
+            username: username,
+            password: password
+          }
+        },
+        function (resp) {
+          if (resp && !resp.ok) appendOut('[LLM2Shell] Bridge unavailable.\n', 'stderr');
+        }
+      );
+    } catch (e) {
+      appendOut('[LLM2Shell] ' + e.message + '\n', 'stderr');
     }
   }
 
@@ -432,6 +489,13 @@
         setSessions(p.sessions);
         break;
       case 'awt:session.created':
+        if (p.session) {
+          state.sessionId = p.session.id;
+          appendOut(
+            '\n[LLM2Shell] Session "' + (p.session.name || p.session.id) + '" ready (' + p.session.type + ').\n',
+            'stdout'
+          );
+        }
         chrome.runtime.sendMessage({ type: 'awt:sessions' });
         break;
       case 'awt:status':

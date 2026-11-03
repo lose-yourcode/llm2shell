@@ -101,4 +101,52 @@ describe('Bridge server (WebSocket integration)', () => {
     expect(result.status).toBe('failed');
     ws.close();
   }, 45000);
+
+  it('creates an SSH session and runs over the persistent connection', async () => {
+    const fakeSsh = {
+      connect: async () => {},
+      exec: async () => ({ exitCode: 0, stdout: 'ssh-ok', stderr: '' }),
+      close: () => {}
+    };
+    const store = new SessionStore({ cwd: process.cwd(), sshFactory: () => fakeSsh });
+    const sshBridge = await createBridgeServer({
+      host: '127.0.0.1',
+      port: 0,
+      token: 'ssh-token',
+      sessions: store
+    });
+
+    const ws = await open(`ws://127.0.0.1:${sshBridge.port}`);
+    ws.send(JSON.stringify({ type: 'hello', token: 'ssh-token' }));
+    await nextMessage(ws, (x) => x.type === 'hello.ok');
+
+    const createReq = 'ssh-create-1';
+    ws.send(
+      JSON.stringify({
+        type: 'session.create',
+        reqId: createReq,
+        sessionType: 'ssh',
+        host: 'example.com',
+        username: 'root'
+      })
+    );
+    const created = await nextMessage(
+      ws,
+      (x) => x.type === 'session.created' && x.reqId === createReq
+    );
+    expect(created.session.type).toBe('ssh');
+    expect(created.session.host).toBe('example.com');
+    expect(created.session.password).toBeUndefined();
+
+    const runReq = 'ssh-run-1';
+    ws.send(
+      JSON.stringify({ type: 'run', reqId: runReq, sessionId: created.session.id, command: 'echo hi' })
+    );
+    const result = await nextMessage(ws, (x) => x.type === 'result' && x.reqId === runReq);
+    expect(result.stdout).toBe('ssh-ok');
+    expect(result.exitCode).toBe(0);
+
+    ws.close();
+    await sshBridge.close();
+  }, 45000);
 });

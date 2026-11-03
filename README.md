@@ -81,6 +81,21 @@ Keep this window open.
 
 ---
 
+## Remote SSH (persistent)
+
+Typing `ssh user@host "cmd"` into the **local** session is one-shot: it reconnects every time and
+prints `Pseudo-terminal will not be allocated because stdin is not a terminal`. That is OpenSSH's
+command mode, not a bug.
+
+For a persistent connection:
+
+1. In the panel, click **+ SSH**.
+2. Enter host / port / username / password, click **Connect**.
+3. The session becomes active; every **Run** executes on that host over one open `ssh2` connection.
+4. `cd` typed in the panel updates the tracked working directory for later commands.
+
+Details and troubleshooting: [`docs/SSH_NOTES.md`](docs/SSH_NOTES.md).
+
 ## The LLM prompt (important)
 
 For reliable detection, tell the AI how to format commands. Ready-to-paste prompt:
@@ -104,7 +119,8 @@ For reliable detection, tell the AI how to format commands. Ready-to-paste promp
 | Send Output / Send Selected / Copy | Implemented |
 | Multiple logical sessions + `cd` tracking | Implemented |
 | Token-authenticated localhost Bridge | Implemented |
-| SSH / persistent PTY / installer | **Not in browser MVP** (see known issues) |
+| Persistent SSH sessions | Implemented via `ssh2` — one connection, per-command channels |
+| Interactive PTY / installer | **Not in browser MVP** (see known issues) |
 
 ---
 
@@ -139,7 +155,9 @@ src/
   bridge/commandExecutor.js    accurate stdout/stderr/exit capture
   bridge/resultCollector.js    F06 result records
   bridge/sessionStore.js       logical sessions + cd tracking
-test/                    Vitest suite (50 tests)
+  bridge/sshSession.js         persistent ssh2 connection (connect once, exec per command)
+scripts/run-tests.js     test launcher (workspace-local temp dir)
+test/                    Vitest suite (57 tests)
 docs/                    architecture, feasibility, test report, known issues, LLM prompt
 electron/ + renderer/    OPTIONAL legacy desktop shell (not the primary path)
 ```
@@ -158,9 +176,9 @@ electron/ + renderer/    OPTIONAL legacy desktop shell (not the primary path)
 
 ## Verification status
 
-- ✅ **50 automated tests pass** (9 files), including **real PowerShell execution**, a
+- ✅ **57 automated tests pass** (10 files), including **real PowerShell execution**, a
   **WebSocket end-to-end Bridge test** (hello → run → output → result with exact exit codes),
-  and a **jsdom DOM test** for toolbar injection + input refill.
+  a **jsdom DOM test** for toolbar injection + input refill, and **persistent SSH** tests.
 - ✅ Bridge HTTP health endpoint returns 200; CLI prints a token.
 - ⚠️ **Live ChatGPT/Gemini DOM behaviour** (Run button placement, input refill) is **UNKNOWN**
   in the build environment — it requires a real browser session. Manual steps are in

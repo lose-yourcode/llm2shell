@@ -53,8 +53,11 @@ Task Manager while the Bridge is idle and after 30 minutes of use.
 
 The browser edition does **not** use tmux, `node-pty`, or `xterm.js`:
 
-- The Bridge runs each command as a fresh `child_process` for **accurate stdout/stderr/exit**
+- Local commands run as a fresh `child_process` for **accurate stdout/stderr/exit**
   (constraint #9).
+- SSH commands run over a **persistent `ssh2.Client`** (`exec` per command, `pty:false`), so the
+  connection is reused and the "connect → one command → disconnect" behaviour of the OpenSSH CLI
+  is avoided.
 - The UI shows a styled streaming output panel plus a command input, not a full terminal emulator.
 - `tmux` is Unix-only and irrelevant to a Windows browser tool.
 
@@ -113,7 +116,7 @@ Remaining work before calling it a product:
 
 | # | Constraint | Status |
 |---|---|---|
-| 1 | Don't implement SSH | N/A — no SSH in the browser MVP (documented gap) |
+| 1 | Don't implement SSH | PASS — `ssh2` persistent sessions |
 | 2 | Don't implement a terminal emulator | PASS — no emulator; streaming output panel |
 | 3 | Don't implement a browser engine | PASS — real Chrome/Edge |
 | 4 | No extra AI agent framework | PASS |

@@ -103,6 +103,30 @@
   color: #ff9b9b;
 }
 
+#awt-panel .awt-sshform {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 6px 8px;
+  border-bottom: 1px solid #3a404b;
+  background: #1a1e25;
+}
+
+#awt-panel .awt-sshform input {
+  background: #101216;
+  color: #e6e9ef;
+  border: 1px solid #3a404b;
+  border-radius: 5px;
+  padding: 4px 6px;
+  font: 11px Consolas, "Cascadia Mono", monospace;
+  min-width: 0;
+}
+
+#awt-panel .awt-ssh-host { flex: 1 1 110px; }
+#awt-panel .awt-ssh-port { width: 54px; flex: 0 0 auto; }
+#awt-panel .awt-ssh-user { flex: 1 1 80px; }
+#awt-panel .awt-ssh-pass { flex: 1 1 100px; }
+
 #awt-panel .awt-inputrow {
   display: flex;
   align-items: center;

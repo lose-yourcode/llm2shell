@@ -9,10 +9,11 @@
   "scripts": {
     "start": "node bridge/server.js",
     "bridge": "node bridge/server.js",
-    "test": "vitest run",
-    "test:watch": "vitest"
+    "test": "node scripts/run-tests.js",
+    "test:watch": "node scripts/run-tests.js --watch"
   },
   "dependencies": {
+    "ssh2": "^1.16.0",
     "ws": "^8.18.0"
   },
   "devDependencies": {

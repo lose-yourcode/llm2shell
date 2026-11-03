@@ -133,8 +133,32 @@ function createBridgeServer(options = {}) {
           return;
 
         case 'session.create': {
+          if (msg.sessionType === 'ssh') {
+            if (!msg.host || !msg.username) {
+              send({ type: 'error', reqId, message: 'SSH requires host and username' });
+              return;
+            }
+            const s = sessions.createSSH({
+              name: msg.name,
+              host: msg.host,
+              port: msg.port,
+              username: msg.username,
+              password: msg.password,
+              privateKey: msg.privateKey,
+              passphrase: msg.passphrase,
+              cwd: msg.cwd
+            });
+            try {
+              await sessions.connect(s.id);
+              send({ type: 'session.created', reqId, session: sessions.publicInfo(s.id) });
+            } catch (err) {
+              sessions.kill(s.id);
+              send({ type: 'error', reqId, message: 'SSH connect failed: ' + err.message });
+            }
+            return;
+          }
           const s = sessions.create(msg.name, msg.cwd);
-          send({ type: 'session.created', reqId, session: s });
+          send({ type: 'session.created', reqId, session: sessions.publicInfo(s.id) });
           return;
         }
 
@@ -165,11 +189,17 @@ function createBridgeServer(options = {}) {
           const startTime = new Date().toISOString();
           send({ type: 'run.started', reqId, sessionId, command, startTime });
 
-          const res = await executor.run({
-            command,
-            cwd,
-            onData: (data, stream) => send({ type: 'output', reqId, sessionId, stream: stream || 'stdout', data })
-          });
+          const session = sessions.get(sessionId);
+          const onData = (data, stream) =>
+            send({ type: 'output', reqId, sessionId, stream: stream || 'stdout', data });
+
+          let res;
+          if (session && session.type === 'ssh') {
+            // Persistent SSH connection: reuse it instead of re-running `ssh`.
+            res = await sessions.execSSH(sessionId, command, { onData });
+          } else {
+            res = await executor.run({ command, cwd, onData });
+          }
 
           send({
             type: 'result',

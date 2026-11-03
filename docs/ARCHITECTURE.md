@@ -34,7 +34,8 @@ Three cooperating pieces:
 │    ├─ http health endpoint + WebSocketServer                                │
 │    ├─ origin check + token handshake                                        │
 │    ├─ protocol dispatch                                                     │
-│    ├─ SessionStore (logical sessions, cd tracking)                          │
+│    ├─ SessionStore (local + SSH sessions, cd tracking)                      │
+│    ├─ SshSession (ssh2: one persistent connection, exec per command)        │
 │    └─ CommandExecutor (child_process, separate stdout/stderr/exit)          │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -64,7 +65,7 @@ Client → Bridge:
 |---|---|---|
 | `hello` | `token` | Authenticate |
 | `run` | `reqId, command, sessionId?, lang?` | Execute |
-| `session.create` | `reqId, name?, cwd?` | New logical session |
+| `session.create` | `reqId, name?, cwd?, sessionType?, host?, port?, username?, password?` | New local or SSH session |
 | `session.list` | `reqId` | List sessions |
 | `session.kill` | `reqId, sessionId` | Remove a session |
 | `ping` | `reqId` | Liveness |
@@ -109,7 +110,25 @@ Multi-line scripts containing `cd` are executed as-is but do not change the trac
 - Input refill: ranked selector list per site, then "last visible textarea/contenteditable".
 - `MutationObserver` + bounded re-scan for streaming replies and SPA hydration.
 
-### 5.5 Localhost security
+### 5.5 Persistent SSH sessions
+
+Typing `ssh host cmd` in a **local** session is one-shot: OpenSSH connects, authenticates, runs,
+and exits. Because the Bridge pipes stdin (no TTY), ssh also prints
+`Pseudo-terminal will not be allocated because stdin is not a terminal`. That is command mode, not
+a bug.
+
+For a real session, the Bridge keeps an `ssh2.Client` open per SSH session and calls
+`client.exec(command, { pty: false })` for each command:
+
+- one TCP/auth connection reused across commands (no re-auth per Run),
+- separate stdout/stderr and exact exit codes,
+- tracked cwd prefixed as `cd '<cwd>' && ( <command> )`,
+- no PTY allocated, so interactive TUI programs are out of scope for this MVP.
+
+`SshSession` lives in `src/bridge/sshSession.js`; `SessionStore` owns the session and never
+exposes passwords or keys in `publicInfo()`.
+
+### 5.6 Localhost security
 
 - Bind `127.0.0.1` only.
 - Token generated on first run (`bridge/.token`, gitignored; override with `AWT_TOKEN`).
@@ -130,6 +149,7 @@ Multi-line scripts containing `cd` are executed as-is but do not change the trac
 | `src/bridge/commandExecutor.js` | Accurate capture layer. |
 | `src/bridge/resultCollector.js` | F06 record store (used by tests/legacy). |
 | `src/bridge/sessionStore.js` | Sessions + `cd` tracking. |
+| `src/bridge/sshSession.js` | Persistent ssh2 connection; `exec` per command. |
 | `test/*` | 45 Vitest tests incl. real PowerShell + WS integration. |
 
 ## 7. Extensibility

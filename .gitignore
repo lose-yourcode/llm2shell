@@ -37,6 +37,7 @@ bridge/.token
 
 # Test artifacts
 coverage/
+.vitest-tmp/
 *.tmp
 
 # WorkBuddy workspace memory (internal)

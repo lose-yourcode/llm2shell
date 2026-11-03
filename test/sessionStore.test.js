@@ -57,4 +57,35 @@ describe('SessionStore', () => {
     expect(store.applyCd(id, 'cd foo && dir')).toBe(false);
     expect(store.applyCd(id, 'echo hi')).toBe(false);
   });
+
+  it('creates, connects and executes a persistent SSH session', async () => {
+    const calls = [];
+    const fakeSsh = {
+      connect: async () => { calls.push('connect'); },
+      exec: async (cmd, opts) => {
+        calls.push(['exec', cmd, opts]);
+        return { exitCode: 0, stdout: 'ssh-ok', stderr: '' };
+      },
+      close: () => { calls.push('close'); }
+    };
+
+    const store = new SessionStore({ cwd: process.cwd(), sshFactory: () => fakeSsh });
+    const s = store.createSSH({ host: 'example.com', username: 'root', password: 'secret' });
+    expect(s.type).toBe('ssh');
+    expect(s.status).toBe('disconnected');
+
+    await store.connect(s.id);
+    expect(s.status).toBe('connected');
+
+    const res = await store.execSSH(s.id, 'echo hi');
+    expect(res.stdout).toBe('ssh-ok');
+
+    const info = store.publicInfo(s.id);
+    expect(info.host).toBe('example.com');
+    expect(info.password).toBeUndefined();
+    expect(info.status).toBe('connected');
+
+    store.kill(s.id);
+    expect(calls).toContain('close');
+  });
 });

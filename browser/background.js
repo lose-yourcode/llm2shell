@@ -167,8 +167,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message.type === 'awt:createSession') {
-    send({ type: 'session.create', reqId: 'c_' + Date.now(), name: message.name });
-    sendResponse({ ok: connected });
+    const reqId = 'c_' + Date.now();
+    const payload = Object.assign(
+      { type: 'session.create', reqId },
+      message.session || { name: message.name }
+    );
+    send(payload);
+    sendResponse({ ok: connected, reqId });
     return true;
   }
 
