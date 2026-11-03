@@ -55,6 +55,48 @@
 
   var APPEND_SEPARATOR = '\n\n';
 
+  // Reliable wrapper around chrome.runtime.sendMessage.
+  // MV3 extensions restart their service worker on reload/update. A tab left
+  // open across that reload keeps the OLD injected content script, whose
+  // chrome.runtime now throws "Extension context invalidated". Detect that up
+  // front and tell the user to refresh the tab, instead of swallowing a raw
+  // Chrome error or silently dropping the message.
+  function sendRuntime(message, cb) {
+    if (typeof chrome === 'undefined' || !chrome.runtime || !chrome.runtime.id) {
+      appendOut(
+        '[LLM2Shell] 插件上下文已失效 (Extension context invalidated)。\n' +
+          '原因：重载过插件但本标签页未刷新。请按 F5 / Ctrl+R 刷新本页，再重试。\n',
+        'stderr'
+      );
+      if (cb) cb({ ok: false, contextInvalidated: true });
+      return false;
+    }
+    try {
+      chrome.runtime.sendMessage(message, function (resp) {
+        if (chrome.runtime.lastError) {
+          var msg = chrome.runtime.lastError.message || '';
+          if (/Extension context invalidated/i.test(msg)) {
+            appendOut('[LLM2Shell] 插件上下文已失效，请刷新本标签页 (F5) 后重试。\n', 'stderr');
+          } else {
+            appendOut('[LLM2Shell] Extension error: ' + msg + '\n', 'stderr');
+          }
+          if (cb) cb({ ok: false, error: msg });
+          return;
+        }
+        if (cb) cb(resp);
+      });
+    } catch (e) {
+      var em = e && e.message ? e.message : String(e);
+      if (/Extension context invalidated/i.test(em)) {
+        appendOut('[LLM2Shell] 插件上下文已失效，请刷新本标签页 (F5) 后重试。\n', 'stderr');
+      } else {
+        appendOut('[LLM2Shell] ' + em + '\n', 'stderr');
+      }
+      if (cb) cb({ ok: false, error: em });
+    }
+    return true;
+  }
+
   // ------------------------------------------------------------------ utils
   function normLang(raw) {
     return (raw || '').toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -671,27 +713,23 @@
     state.panel.querySelector('.awt-ssh-pass').value = '';
     state.panel.querySelector('.awt-sshform').style.display = 'none';
 
-    try {
-      chrome.runtime.sendMessage(
-        {
-          type: 'awt:createSession',
-          session: {
-            sessionType: 'ssh',
-            name: (username ? username + '@' : '') + host,
-            host: host,
-            port: port,
-            username: username,
-            password: password,
-            identityFile: identityFile
-          }
-        },
-        function (resp) {
-          if (resp && !resp.ok) appendOut('[LLM2Shell] Bridge unavailable.\n', 'stderr');
+    sendRuntime(
+      {
+        type: 'awt:createSession',
+        session: {
+          sessionType: 'ssh',
+          name: (username ? username + '@' : '') + host,
+          host: host,
+          port: port,
+          username: username,
+          password: password,
+          identityFile: identityFile
         }
-      );
-    } catch (e) {
-      appendOut('[LLM2Shell] ' + e.message + '\n', 'stderr');
-    }
+      },
+      function (resp) {
+        if (resp && !resp.ok && !resp.contextInvalidated) appendOut('[LLM2Shell] Bridge unavailable.\n', 'stderr');
+      }
+    );
   }
 
   // -------------------------------------------------------------- detection
@@ -776,22 +814,14 @@
     if (!state.connected) {
       appendOut('[LLM2Shell] Bridge not connected. Start it with `npm start` and set the token in the extension options.\n', 'stderr');
     }
-    try {
-      chrome.runtime.sendMessage(
-        { type: 'awt:run', command: command, lang: lang, sessionId: state.sessionId },
-        function (resp) {
-          if (chrome.runtime.lastError) {
-            appendOut('[LLM2Shell] Extension error: ' + chrome.runtime.lastError.message + '\n', 'stderr');
-            return;
-          }
-          if (resp && !resp.ok && !resp.queued) {
-            appendOut('[LLM2Shell] Bridge unavailable.\n', 'stderr');
-          }
+    sendRuntime(
+      { type: 'awt:run', command: command, lang: lang, sessionId: state.sessionId },
+      function (resp) {
+        if (resp && !resp.ok && !resp.queued && !resp.contextInvalidated) {
+          appendOut('[LLM2Shell] Bridge unavailable.\n', 'stderr');
         }
-      );
-    } catch (e) {
-      appendOut('[LLM2Shell] ' + e.message + '\n', 'stderr');
-    }
+      }
+    );
   }
 
   // ChatGPT and Gemini often lay a code block out as a flex row. Dropped in as a
@@ -904,7 +934,7 @@
             'stdout'
           );
         }
-        chrome.runtime.sendMessage({ type: 'awt:sessions' });
+        sendRuntime({ type: 'awt:sessions' });
         break;
       case 'awt:status':
         setConnected(p.connected);
@@ -926,10 +956,10 @@
 
     try {
       chrome.runtime.onMessage.addListener(onMessage);
-      chrome.runtime.sendMessage({ type: 'awt:status' }, function (r) {
-        if (r) setConnected(r.connected);
+      sendRuntime({ type: 'awt:status' }, function (r) {
+        if (r && typeof r.connected === 'boolean') setConnected(r.connected);
       });
-      chrome.runtime.sendMessage({ type: 'awt:sessions' });
+      sendRuntime({ type: 'awt:sessions' });
     } catch (e) {
       // Not running as an extension (e.g. manual injection): stay usable but
       // without a Bridge connection.

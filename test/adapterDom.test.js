@@ -17,6 +17,7 @@ function installAdapter(win) {
   const stored = {};
   const chromeMock = {
     runtime: {
+      id: 'test-extension-id',
       onMessage: { addListener: (fn) => listeners.push(fn) },
       sendMessage: (msg, cb) => {
         calls.push(msg);
