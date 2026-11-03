@@ -55,6 +55,11 @@
 
   var APPEND_SEPARATOR = '\n\n';
 
+  // Safety cap on the in-memory transcript copy (the visible panel keeps the
+  // full text). Large enough for any realistic session; bounds memory if a
+  // command dumps an enormous amount of output.
+  var MAX_OUTPUT_CHARS = 2 * 1000 * 1000;
+
   // Reliable wrapper around chrome.runtime.sendMessage.
   // MV3 extensions restart their service worker on reload/update. A tab left
   // open across that reload keeps the OLD injected content script, whose
@@ -484,6 +489,22 @@
     }
   }
 
+  // Coalesce autoscroll + "jump to latest" toggling into one layout pass per
+  // frame instead of forcing a synchronous reflow on every streamed chunk.
+  var followRAF = 0;
+  function scheduleFollow(out) {
+    if (!out) return;
+    if (followRAF) return;
+    var run = function () {
+      followRAF = 0;
+      if (state.pinned) out.scrollTop = out.scrollHeight;
+      updateJump(out);
+    };
+    followRAF = (typeof requestAnimationFrame === 'function')
+      ? requestAnimationFrame(run)
+      : setTimeout(run, 16);
+  }
+
   function appendOut(text, stream) {
     if (!state.panel) return;
     var out = state.panel.querySelector('.awt-out');
@@ -496,10 +517,12 @@
       out.appendChild(document.createTextNode(text));
     }
     state.outputText += text;
+    if (state.outputText.length > MAX_OUTPUT_CHARS) {
+      state.outputText = state.outputText.slice(-MAX_OUTPUT_CHARS);
+    }
     // Follow the stream only while the user is already at the bottom, so
     // scrolling up to read something is not yanked back on every chunk.
-    if (state.pinned) out.scrollTop = out.scrollHeight;
-    updateJump(out);
+    scheduleFollow(out);
   }
 
   // Header line for each command, so a long transcript never loses track of
@@ -514,8 +537,10 @@
     span.textContent = '$ ' + command;
     out.appendChild(span);
     state.outputText += (state.outputText ? '\n' : '') + '$ ' + command + '\n';
-    if (state.pinned) out.scrollTop = out.scrollHeight;
-    updateJump(out);
+    if (state.outputText.length > MAX_OUTPUT_CHARS) {
+      state.outputText = state.outputText.slice(-MAX_OUTPUT_CHARS);
+    }
+    scheduleFollow(out);
   }
 
   function atBottom(out) {
@@ -874,8 +899,21 @@
     parent.insertBefore(bar, pre);
   }
 
+  // The panel's own output <pre> is NOT a code block and must be ignored by the
+  // code-block scanner. Crucially it must also be excluded from the page-wide
+  // MutationObserver: every streamed SSH/output chunk would otherwise force a
+  // full reflow of the (growing) panel, which scales O(n^2) over a session and
+  // pegs CPU / memory.
+  function insidePanel(node) {
+    if (!state.panel || !node) return false;
+    if (node === state.panel) return true;
+    var el = node.nodeType === 1 ? node : (node.parentElement || node.parentNode);
+    return !!(el && state.panel.contains(el));
+  }
+
   function processPre(pre) {
     if (!pre || pre.getAttribute('data-awt') === '1') return;
+    if (insidePanel(pre)) return;
     var code = pre.querySelector('code') || pre;
     var text = code.innerText || code.textContent || '';
     if (!text.trim()) return;
@@ -889,9 +927,11 @@
   function scan(root) {
     var scope = root || document;
     // A newly added node may itself be a <pre>; process it before descendants.
-    if (scope.nodeType === 1 && scope.tagName === 'PRE') processPre(scope);
+    if (scope.nodeType === 1 && scope.tagName === 'PRE' && !insidePanel(scope)) processPre(scope);
     var pres = scope.querySelectorAll ? scope.querySelectorAll('pre') : [];
-    for (var i = 0; i < pres.length; i++) processPre(pres[i]);
+    for (var i = 0; i < pres.length; i++) {
+      if (!insidePanel(pres[i])) processPre(pres[i]);
+    }
   }
 
   // -------------------------------------------------------------- messaging
@@ -977,19 +1017,40 @@
       if (pre && pre.getAttribute('data-awt') !== '1') processPre(pre);
     }
 
-    var observer = new MutationObserver(function (muts) {
-      for (var i = 0; i < muts.length; i++) {
-        var mut = muts[i];
+    var pendingMuts = [];
+    var flushScheduled = false;
+    function flushObserver() {
+      flushScheduled = false;
+      var batch = pendingMuts;
+      pendingMuts = [];
+      for (var i = 0; i < batch.length; i++) {
+        var mut = batch[i];
+        if (insidePanel(mut.target)) continue;
         if (mut.type === 'characterData') {
           recheck(mut.target);
           continue;
         }
         var added = mut.addedNodes;
+        if (!added) continue;
         for (var j = 0; j < added.length; j++) {
+          if (insidePanel(added[j])) continue;
           if (added[j].nodeType === 1) scan(added[j]);
           else if (added[j].nodeType === 3) recheck(added[j]);
         }
       }
+    }
+    // Debounce: in a real browser collapse every mutation burst into a single
+    // pass per animation frame (requestAnimationFrame). Without this, a streamed
+    // reply / output chunk triggers one full page re-scan per character, and the
+    // panel's own growth would reflow O(n^2). Where rAF is unavailable (jsdom /
+    // tests) fall back to flushing synchronously so behaviour is unchanged.
+    var hasRAF = typeof requestAnimationFrame === 'function';
+    var observer = new MutationObserver(function (muts) {
+      for (var i = 0; i < muts.length; i++) pendingMuts.push(muts[i]);
+      if (flushScheduled) return;
+      flushScheduled = true;
+      if (hasRAF) requestAnimationFrame(flushObserver);
+      else flushObserver();
     });
     try {
       observer.observe(document.body, {

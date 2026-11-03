@@ -59,6 +59,15 @@ describe('browser adapter DOM behaviour', () => {
   let calls;
   let listeners;
 
+  // The MutationObserver work is debounced to an animation frame in real
+  // browsers. Wait for that flush (rAF, or a short timeout in jsdom) instead of
+  // a bare setTimeout(0), which resolves before the frame fires.
+  const tick = () =>
+    new Promise((r) => {
+      if (typeof globalThis.requestAnimationFrame === 'function') globalThis.requestAnimationFrame(r);
+      else setTimeout(r, 20);
+    });
+
   beforeAll(() => {
     document.body.innerHTML =
       '<pre><code class="language-powershell">Get-ChildItem</code></pre>' +
@@ -93,7 +102,7 @@ describe('browser adapter DOM behaviour', () => {
     pre.appendChild(code);
     document.body.appendChild(pre);
     // Let the MutationObserver run.
-    await new Promise((r) => setTimeout(r, 0));
+    await tick();
     const toolbarBefore = pre.previousElementSibling;
     expect(toolbarBefore && toolbarBefore.classList.contains('awt-toolbar')).toBeFalsy();
   });
@@ -280,7 +289,7 @@ describe('browser adapter DOM behaviour', () => {
     pre.appendChild(code);
     row.appendChild(pre);
     document.body.appendChild(row);
-    await new Promise((r) => setTimeout(r, 0));
+    await tick();
 
     const bar = Array.from(row.children).find((el) => el.classList.contains('awt-toolbar'));
     expect(bar).toBeTruthy();
@@ -304,7 +313,7 @@ describe('browser adapter DOM behaviour', () => {
     row.appendChild(pre);
     card.appendChild(row);
     document.body.appendChild(card);
-    await new Promise((r) => setTimeout(r, 0));
+    await tick();
 
     const bar = Array.from(card.children).find((el) => el.classList.contains('awt-toolbar'));
     expect(bar).toBeTruthy();
@@ -326,7 +335,7 @@ describe('browser adapter DOM behaviour', () => {
       '<pre class="code-block-internal"><code class="code-block-internal">Get-ChildItem -Path C:\\Temp</code></pre>' +
       '</div></div>';
     document.body.appendChild(host);
-    await new Promise((r) => setTimeout(r, 0));
+    await tick();
 
     const pre = host.querySelector('pre');
     const bar = host.querySelector('.awt-toolbar');
@@ -342,7 +351,7 @@ describe('browser adapter DOM behaviour', () => {
     code.textContent = 'Get-Process';
     pre.appendChild(code);
     document.body.appendChild(pre);
-    await new Promise((r) => setTimeout(r, 0));
+    await tick();
 
     expect(pre.getAttribute('data-awt')).toBe('1');
   });
@@ -355,7 +364,7 @@ describe('browser adapter DOM behaviour', () => {
       '<pre class="code-block-internal"><code class="code-block-internal">print(1)</code></pre>' +
       '</div>';
     document.body.appendChild(host);
-    await new Promise((r) => setTimeout(r, 0));
+    await tick();
 
     expect(host.querySelector('.awt-toolbar')).toBeFalsy();
   });
@@ -366,12 +375,12 @@ describe('browser adapter DOM behaviour', () => {
     code.className = 'language-bash';
     pre.appendChild(code);
     document.body.appendChild(pre);
-    await new Promise((r) => setTimeout(r, 0));
+    await tick();
     expect(pre.getAttribute('data-awt')).toBeNull();
 
     // Streaming: the text is appended into an already-present, empty <code>.
     code.textContent = 'ls -la';
-    await new Promise((r) => setTimeout(r, 0));
+    await tick();
 
     expect(pre.getAttribute('data-awt')).toBe('1');
     expect(pre.previousElementSibling.classList.contains('awt-toolbar')).toBe(true);

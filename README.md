@@ -163,6 +163,7 @@ For reliable detection, tell the AI how to format commands. Ready-to-paste promp
 | A block still has no buttons | The site changed its DOM | Run `LLM2Shell.debug()` in the console (DevTools → Console → context dropdown → the LLM2Shell content script). It lists every `<pre>` with the detected language, whether it passed the shell check, and its text length |
 | The status dot stays red | Bridge not running, or the token does not match | `npm start`, then paste the printed token in **Options → Save & Connect** |
 | `Extension context invalidated` when you click Connect / Run | You reloaded the extension (or it auto-reloaded) but the AI tab was left open, so its injected script still points at the dead service worker | **Refresh the ChatGPT / Gemini tab itself** (F5 / Ctrl+R) — this re-injects the current content script. The panel now also prints a Chinese reminder to refresh instead of the raw Chrome error |
+| Edge memory / CPU spikes (e.g. 1 GB+, 30% CPU) after a few SSH commands | The panel's own output `<pre>` lived inside `document.body`, so the page-wide MutationObserver re-scanned it on every streamed chunk and forced a full panel reflow → O(n²) over the session | Fixed: the panel is excluded from the observer/scanner, the observer is debounced to one pass per animation frame, and scroll updates are coalesced. No change to behaviour |
 
 ---
 
