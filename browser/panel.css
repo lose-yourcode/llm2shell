@@ -1,0 +1,161 @@
+/* Floating panel + injected run buttons. All classes are namespaced with "awt". */
+
+#awt-panel {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  width: 580px;
+  max-width: calc(100vw - 36px);
+  background: #15181e;
+  color: #e6e9ef;
+  border: 1px solid #3a404b;
+  border-radius: 10px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  z-index: 2147483647;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+#awt-panel.awt-collapsed {
+  width: 260px;
+}
+
+#awt-panel.awt-collapsed .awt-out {
+  display: none;
+}
+
+#awt-panel .awt-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  background: #1e222a;
+  border-bottom: 1px solid #3a404b;
+}
+
+#awt-panel .awt-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #e05555;
+  flex: 0 0 auto;
+}
+
+#awt-panel .awt-dot.awt-on {
+  background: #4caf7a;
+  box-shadow: 0 0 8px #4caf7a;
+}
+
+#awt-panel .awt-title {
+  font-weight: 600;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+#awt-panel .awt-spacer {
+  flex: 1;
+}
+
+#awt-panel select {
+  background: #2c313a;
+  color: #e6e9ef;
+  border: 1px solid #3a404b;
+  border-radius: 5px;
+  font-size: 11px;
+  padding: 2px 4px;
+  max-width: 130px;
+}
+
+#awt-panel .awt-btn {
+  background: #2c313a;
+  color: #e6e9ef;
+  border: 1px solid #3a404b;
+  border-radius: 5px;
+  padding: 3px 8px;
+  font-size: 11px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+#awt-panel .awt-btn:hover {
+  background: #333a45;
+}
+
+#awt-panel .awt-icon {
+  padding: 3px 7px;
+}
+
+#awt-panel .awt-out {
+  margin: 0;
+  padding: 8px 10px;
+  height: 230px;
+  overflow: auto;
+  font: 12px/1.45 Consolas, "Cascadia Mono", "Courier New", monospace;
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: #101216;
+  color: #e6e9ef;
+}
+
+#awt-panel .awt-stderr {
+  color: #ff9b9b;
+}
+
+#awt-panel .awt-inputrow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-top: 1px solid #3a404b;
+  background: #15181e;
+}
+
+#awt-panel .awt-prompt {
+  color: #4caf7a;
+  font: 12px/1.4 Consolas, "Cascadia Mono", monospace;
+}
+
+#awt-panel .awt-cmd {
+  flex: 1;
+  background: #101216;
+  color: #e6e9ef;
+  border: 1px solid #3a404b;
+  border-radius: 5px;
+  padding: 5px 8px;
+  font: 12px/1.4 Consolas, "Cascadia Mono", monospace;
+  outline: none;
+}
+
+#awt-panel .awt-cmd:focus {
+  border-color: #4f8cff;
+}
+
+/* Injected toolbar (lives in the page, not inside the panel) */
+.awt-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 6px 0 2px;
+  align-items: center;
+}
+
+.awt-tag {
+  font: 11px system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: #5f6368;
+}
+
+.awt-run-btn {
+  cursor: pointer;
+  padding: 2px 9px;
+  border: 1px solid #9aa0a6;
+  border-radius: 5px;
+  background: #f1f3f4;
+  color: #202124;
+  font: 12px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+.awt-run-btn:hover {
+  background: #e8eaed;
+}

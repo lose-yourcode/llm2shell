@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>LLM2Shell Options</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      background: #1b1e24;
+      color: #e6e9ef;
+      max-width: 520px;
+      margin: 32px auto;
+      padding: 0 18px;
+    }
+    h2 { font-size: 18px; }
+    label { display: block; margin: 14px 0 4px; color: #9aa3b2; font-size: 13px; }
+    input {
+      width: 100%;
+      box-sizing: border-box;
+      background: #101216;
+      color: #e6e9ef;
+      border: 1px solid #3a404b;
+      border-radius: 6px;
+      padding: 8px 10px;
+      font-size: 13px;
+    }
+    button {
+      margin-top: 18px;
+      background: #4f8cff;
+      color: #fff;
+      border: 0;
+      border-radius: 6px;
+      padding: 9px 16px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    button:hover { background: #2f6fe0; }
+    #status { margin-top: 12px; font-size: 13px; color: #9aa3b2; }
+    code { background: #2c313a; padding: 1px 5px; border-radius: 4px; }
+    .hint { color: #9aa3b2; font-size: 12px; line-height: 1.5; margin-top: 22px; }
+  </style>
+</head>
+<body>
+  <h2>LLM2Shell Bridge</h2>
+
+  <label>Bridge URL</label>
+  <input id="url" value="ws://127.0.0.1:8765" />
+
+  <label>Token</label>
+  <input id="token" placeholder="Paste the token printed by the bridge" />
+
+  <button id="save">Save &amp; Connect</button>
+  <p id="status"></p>
+
+  <p class="hint">
+    Start the bridge in the project folder with <code>npm start</code>. It prints a token —
+    paste it above. The bridge only listens on <code>127.0.0.1</code> and only accepts
+    extension origins.
+  </p>
+
+  <script src="options.js"></script>
+</body>
+</html>

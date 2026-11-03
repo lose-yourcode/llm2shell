@@ -1,0 +1,33 @@
+{
+  "manifest_version": 3,
+  "name": "LLM2Shell — AI Web Terminal Bridge",
+  "version": "0.2.0",
+  "description": "Run shell commands suggested by ChatGPT/Gemini in a local terminal, with human approval, then send the output back to the chat.",
+  "permissions": ["storage", "tabs"],
+  "host_permissions": [
+    "https://chatgpt.com/*",
+    "https://chat.openai.com/*",
+    "https://gemini.google.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://chatgpt.com/*", "https://chat.openai.com/*"],
+      "js": ["content/adapter.js", "content/chatgpt.js"],
+      "css": ["panel.css"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://gemini.google.com/*"],
+      "js": ["content/adapter.js", "content/gemini.js"],
+      "css": ["panel.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "options_page": "options.html",
+  "action": {
+    "default_title": "LLM2Shell"
+  }
+}

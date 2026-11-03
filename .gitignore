@@ -1,0 +1,40 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+out/
+release/
+
+# Electron
+*.exe
+*.dmg
+*.AppImage
+*.snap
+*.deb
+
+# OS / editor
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor / IDE
+.vscode/
+.idea/
+
+# Secrets / local config
+*.local.js
+.env
+.env.*
+!*.example.env
+bridge/.token
+.token
+
+# Test artifacts
+coverage/
+*.tmp

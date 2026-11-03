@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data:; connect-src 'self';" />
+  <title>LLM2Shell — AI Web Terminal Bridge</title>
+  <link rel="stylesheet" href="vendor/xterm.css" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app">
+    <header id="topbar">
+      <div class="brand"><span class="dot"></span>LLM2Shell</div>
+      <div id="aiTabs" class="tabs"></div>
+      <div class="spacer"></div>
+      <button id="btnAddSite" class="tb-btn" title="Add a custom AI website">+ Site</button>
+    </header>
+
+    <main id="aiArea">
+      <div id="webviewHost"></div>
+      <div id="emptyHint">Open an AI tab above to begin. Log in normally — sessions persist.</div>
+    </main>
+
+    <div id="splitter" title="Drag to resize"></div>
+
+    <section id="terminalPanel">
+      <div class="panel-head">
+        <div id="sessionTabs" class="tabs"></div>
+        <div class="spacer"></div>
+        <button id="btnNewLocal" class="tb-btn">+ Local</button>
+        <button id="btnNewSSH" class="tb-btn">+ SSH</button>
+      </div>
+      <div id="termToolbar">
+        <label class="inline-label">Run in
+          <select id="sessionSelect" title="Session that Run commands target"></select>
+        </label>
+        <span class="divider"></span>
+        <button id="btnSendOutput" class="tb-btn primary">Send Output</button>
+        <button id="btnSendSelected" class="tb-btn">Send Selected</button>
+        <button id="btnSendCmdOut" class="tb-btn">Send Cmd + Output</button>
+        <span class="spacer"></span>
+        <button id="btnKill" class="tb-btn danger">Kill Session</button>
+      </div>
+      <div id="termHost"></div>
+      <div id="statusBar"><span id="statusText">Ready</span></div>
+    </section>
+  </div>
+
+  <!-- SSH connection modal -->
+  <div id="sshModal" class="modal hidden">
+    <div class="modal-box">
+      <h3>New SSH Session</h3>
+      <label>Host <input id="sshHost" placeholder="192.168.1.10" autocomplete="off" /></label>
+      <label>Port <input id="sshPort" value="22" autocomplete="off" /></label>
+      <label>Username <input id="sshUser" placeholder="root" autocomplete="off" /></label>
+      <label>Password <input id="sshPass" type="password" autocomplete="off" /></label>
+      <div class="modal-actions">
+        <button id="sshCancel" class="tb-btn">Cancel</button>
+        <button id="sshConnect" class="tb-btn primary">Connect</button>
+      </div>
+      <p class="hint">Tip: key-based auth via your ~/.ssh/config is recommended. Passwords are used once and never stored.</p>
+    </div>
+  </div>
+
+  <!-- Custom site modal -->
+  <div id="siteModal" class="modal hidden">
+    <div class="modal-box">
+      <h3>Add AI Website</h3>
+      <label>Name <input id="siteName" placeholder="My AI" autocomplete="off" /></label>
+      <label>URL <input id="siteUrl" placeholder="https://example.com/chat" autocomplete="off" /></label>
+      <div class="modal-actions">
+        <button id="siteCancel" class="tb-btn">Cancel</button>
+        <button id="siteAdd" class="tb-btn primary">Add</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
