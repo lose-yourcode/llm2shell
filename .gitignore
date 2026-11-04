@@ -35,6 +35,10 @@ desktop.ini
 bridge/.token
 .token
 
+# Local privacy deny-list for `npm run scan:secrets` (never commit the real one)
+.secret-denylist
+!*.secret-denylist.example
+
 # Test artifacts
 coverage/
 .vitest-tmp/

@@ -1,8 +1,8 @@
 # LLM2Shell — AI Web Terminal Bridge (Browser Edition)
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.2.1-green.svg)](VERSION)
-[![Tests](https://img.shields.io/badge/tests-105%20passing-brightgreen.svg)](docs/TEST_REPORT.md)
+[![Version](https://img.shields.io/badge/version-0.2.2-green.svg)](VERSION)
+[![Tests](https://img.shields.io/badge/tests-128%20passing-brightgreen.svg)](docs/TEST_REPORT.md)
 [![Platform](https://img.shields.io/badge/platform-Windows%2011%20%7C%20PowerShell-lightgrey.svg)](#quick-start-windows-11)
 
 > **Human-in-the-Loop AI Terminal Workspace.**
@@ -240,7 +240,7 @@ src/
   bridge/sshSession.js         persistent ssh2 connection (connect once, exec per command)
   bridge/sshConfig.js          ~/.ssh/config alias -> host/user/port/key
 scripts/run-tests.js     test launcher (workspace-local temp dir)
-test/                    Vitest suite (105 tests)
+test/                    Vitest suite (128 tests)
 docs/                    architecture, feasibility, test report, known issues, LLM prompt
 electron/ + renderer/    OPTIONAL legacy desktop shell (not the primary path)
 CHANGELOG.md             release history
@@ -259,12 +259,31 @@ LICENSE                  GNU General Public License v3.0
 | `npm start` | Start the local Bridge |
 | `npm test` | Run the Vitest suite |
 | `npm run test:watch` | Watch mode |
+| `npm run scan:secrets` | Scan **every commit, every commit message and the working tree** for private data |
+
+### Before you push
+
+`npm run scan:secrets` looks for real public IPs, home-directory paths that leak a
+user name, API tokens, private-key material, non-placeholder e-mail addresses and
+anything listed in your local `.secret-denylist`.
+
+It scans the **whole history**, not just `HEAD`, because rewriting a branch does
+not delete objects from a remote — a commit that was pushed once stays readable by
+its SHA even after a force-push. Exits `1` on any finding, so it can gate a push:
+
+```bash
+npm run scan:secrets && git push
+```
+
+Put your own identifiers (SSH alias, server hostname, client name) in
+`.secret-denylist` — it is gitignored. Copy `.secret-denylist.example` to start.
+Never put real values in a tracked file, including this one.
 
 ---
 
 ## Verification status
 
-- ✅ **105 automated tests pass** (12 files), including **real PowerShell execution**, a
+- ✅ **128 automated tests pass** (14 files), including **real PowerShell execution**, a
   **WebSocket end-to-end Bridge test** (hello → run → output → result with exact exit codes),
   a **jsdom DOM test** for toolbar injection + input refill + panel resize/collapse, and
   **persistent SSH** tests.

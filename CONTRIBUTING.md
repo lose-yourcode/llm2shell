@@ -56,6 +56,29 @@ There is no coverage threshold. The rule is simpler: **a behaviour that isn't
 tested isn't done.** If a bug report motivated a change, add the regression test
 that would have caught it.
 
+## Privacy scan (run this before pushing)
+
+```bash
+npm run scan:secrets
+```
+
+It scans every blob in the history, every commit message and every tracked or
+untracked-not-ignored file. Anything it finds blocks the push.
+
+Rules of thumb for this project specifically:
+
+- **Never** put a real SSH alias, hostname, IP, user name, key filename or
+  service name into docs, tests or fixtures. Use `myserver`, `deploy`,
+  `203.0.113.10` (RFC 5737), `192.168.1.10`, `nginx`.
+- Keep your own identifiers in `.secret-denylist` (gitignored). Copy
+  `.secret-denylist.example` to start.
+- Build test fixtures that *look* like secrets at runtime, e.g.
+  `'ghp_' + 'A'.repeat(36)`, so the test stays meaningful without leaving a
+  literal in the file.
+- If you ever commit a real secret, **removing it in a later commit is not
+  enough** — it stays in the history and, once pushed, stays readable on the
+  remote by SHA. Treat it as compromised and rotate it.
+
 ## Code conventions
 
 - `browser/content/adapter.js` is a plain content script: **ES5-ish syntax**,

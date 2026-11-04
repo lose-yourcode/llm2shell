@@ -1,6 +1,6 @@
 # Test Report — LLM2Shell (Browser Edition)
 
-**Date:** 2026-11-03
+**Date:** 2026-11-04
 **Environment:** Windows 11 · Node v22.22.2 · npm 10.9.7 · Vitest 2.1.9
 **Command:** `npx vitest run`
 
@@ -10,16 +10,16 @@
 
 | Metric | Result |
 |---|---|
-| Test files | 12 passed / 12 |
-| Tests | **102 passed / 102** |
+| Test files | 14 passed / 14 |
+| Tests | **128 passed / 128** |
 | Real PowerShell executions | 6 (via `CommandExecutor`) |
 | WebSocket end-to-end Bridge runs | 4 (local exit 0, local exit 5, malformed command, SSH session) |
-| Persistent SSH tests | 7 (mocked ssh2) + 13 store/config tests |
+| Persistent SSH tests | 7 (mocked ssh2) + 14 store/config tests |
 | Failures | 0 |
 
 ```
- Test Files  12 passed (12)
-      Tests  102 passed (102)
+ Test Files  14 passed (14)
+      Tests  128 passed (128)
    Duration  4.95s
 ```
 
@@ -33,13 +33,15 @@
 | `test/resultCollector.test.js` | 5 | F06 record schema, status transitions, separate stdout/stderr, session filtering. |
 | `test/commandExecutor.test.js` | 6 | **Real** PowerShell: stdout capture, stdout/stderr separation, exact exit code, streaming, **refuses an unterminated quote**, multi-line quoted command still runs. |
 | `test/sessionManager.test.js` | 5 | Legacy PTY session lifecycle with a mocked `node-pty` (create/write/resize/kill/events). |
-| `test/sessionStore.test.js` | 13 | Default session, create/get/list/kill, ≥3 sessions, `cd` tracking, bad paths, SSH create/connect/exec, **`~/.ssh/config` alias resolution**, explicit values win, **ProxyJump rejected**, **key file loading**. |
+| `test/sessionStore.test.js` | 14 | Default session, create/get/list/kill, ≥3 sessions, `cd` tracking, bad paths, SSH create/connect/exec, **`~/.ssh/config` alias resolution**, explicit values win, **ProxyJump rejected**, **key file loading**, **alias-supplied IdentityFile loaded into `client.connect`**. |
 | `test/bridgeServer.test.js` | 6 | **Real WebSocket**: bad token rejected, good token accepted, run streams output + result, exit 5, **malformed command reported as invalid**, SSH session create + run. |
 | `test/sshSession.test.js` | 5 | Persistent ssh2: connect once, exec per command, stdout/stderr/exit, cwd prefix, close. |
 | `test/browserAdapter.test.js` | 4 | Manifest validity (MV3, matches), adapter surface, site profiles, background protocol strings. |
-| `test/adapterDom.test.js` | 20 | **jsdom DOM**: toolbar injection, **Gemini-style `<code-block>` gets buttons via its header label**, **layout class names are not read as a language**, **Python block still skipped**, **block whose text arrives late is picked up**, **toolbar gets its own line inside a flex-row code container**, **toolbar goes above a flex row that has other children**, Run dispatch, **live block text re-read at click time**, Send Output fills the input, **append below existing text**, **replace mode**, **Prompt button**, **no duplicate prompt**, **transcript keeps one header per command**, **Send All includes every result**, **jump-to-latest + New Chat**, manual Enter command, panel resize grip + collapse/restore. |
+| `test/adapterDom.test.js` | 22 | **jsdom DOM**: toolbar injection, **Gemini-style `<code-block>` gets buttons via its header label**, **layout class names are not read as a language**, **Python block still skipped**, **block whose text arrives late is picked up**, **toolbar gets its own line inside a flex-row code container**, **toolbar goes above a flex row that has other children**, Run dispatch, **live block text re-read at click time**, Send Output fills the input, **append below existing text**, **replace mode**, **Prompt button**, **no duplicate prompt**, **transcript keeps one header per command**, **Send All includes every result**, **jump-to-latest + New Chat**, manual Enter command, panel resize grip + collapse/restore, **Disconnect kills an SSH session**, **Disconnect refuses a local session**. |
 | `test/quoteGuard.test.js` | 14 | **Quote scanner**: balanced vs unterminated detection, line/column reporting, `#` comments, URL `#`, `""`/backtick escapes, here-strings, bash `\"`. |
 | `test/sshConfig.test.js` | 8 | **`~/.ssh/config` parser**: block order, alias → host/user/port/key, `*`/`?` wildcards, global defaults, ProxyJump exposure, missing file, `~` expansion. |
+| `test/secretScanner.test.js` | 17 | **Privacy rules**: public IP flagged, private/loopback/documentation ranges ignored, UA version string not mistaken for an IP, GitHub/AWS/Google/Slack token shapes, home path user-name leak, reserved e-mail domains, real vs placeholder private keys, placeholder credentials ignored, deny-list matching, masking, line numbers. |
+| `test/scanSecretsCli.test.js` | 6 | **CLI end-to-end in throwaway git repos**: clean repo exits 0, committed public IP exits 1 with the rule named, **a secret that only exists in history is still found**, `--no-history`, `.secret-denylist`, `--json`. |
 | `test/adapters.test.js` | 5 | Legacy Electron adapter scripts are syntactically valid and expose expected buttons. |
 
 ---

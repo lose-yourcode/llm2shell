@@ -12,6 +12,32 @@ The authoritative version string lives in [`VERSION`](VERSION) and is mirrored i
 
 Nothing yet.
 
+## [0.2.2] - 2026-11-04
+
+### Added
+
+- **`npm run scan:secrets`** — a privacy scanner that inspects every blob in the
+  history, every commit message and every tracked (or untracked-not-ignored)
+  file. Detects real public IPv4 addresses, home-directory paths that leak a user
+  name, GitHub/AWS/Google/Slack token shapes, private-key material with a real
+  body, non-placeholder e-mail addresses, hard-coded credentials, and any term in
+  a local deny-list. Exits `1` on a finding, so it can gate a push.
+- `--cwd`, `--no-history`, `--no-worktree` and `--json` flags. Reports mask the
+  matched value, including in JSON output.
+- `.secret-denylist.example` — template for the gitignored `.secret-denylist`
+  where project-specific identifiers belong.
+
+### Changed
+
+- Documentation and test fixtures now use neutral placeholders (`myserver`,
+  `deploy`, `203.0.113.10`, `nginx`) instead of real-world identifiers. Commit
+  history was rebuilt so the old values are not recoverable from any commit.
+
+### Fixed
+
+- The quote-guard position assertions follow the placeholder alias, which is two
+  characters longer than the value they were written against.
+
 ## [0.2.1] - 2026-11-04
 
 ### Added
@@ -100,7 +126,8 @@ Nothing yet.
 - Documentation set under `docs/` (architecture, development notes, known
   issues, test report, SSH notes, LLM prompt).
 
-[Unreleased]: https://github.com/lose-yourcode/llm2shell/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/lose-yourcode/llm2shell/compare/v0.2.2...HEAD
+[0.2.2]: https://github.com/lose-yourcode/llm2shell/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/lose-yourcode/llm2shell/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/lose-yourcode/llm2shell/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/lose-yourcode/llm2shell/releases/tag/v0.1.0

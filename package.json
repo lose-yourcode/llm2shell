@@ -1,6 +1,6 @@
 {
   "name": "llm2shell",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Browser-based AI Web Terminal Bridge: a Chrome/Edge extension plus a local Bridge service that runs ChatGPT/Gemini shell commands with human approval.",
   "main": "bridge/server.js",
   "author": "WorkBuddy AI",
@@ -29,7 +29,8 @@
     "start": "node bridge/server.js",
     "bridge": "node bridge/server.js",
     "test": "node scripts/run-tests.js",
-    "test:watch": "node scripts/run-tests.js --watch"
+    "test:watch": "node scripts/run-tests.js --watch",
+    "scan:secrets": "node scripts/scan-secrets.js"
   },
   "dependencies": {
     "ssh2": "^1.16.0",
