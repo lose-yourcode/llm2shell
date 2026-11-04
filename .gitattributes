@@ -1,0 +1,28 @@
+# Normalize line endings so Windows checkouts and CI agree.
+* text=auto eol=lf
+
+# Source
+*.js    text eol=lf
+*.json  text eol=lf
+*.md    text eol=lf
+*.css   text eol=lf
+*.html  text eol=lf
+*.yml   text eol=lf
+*.yaml  text eol=lf
+
+# Windows scripts keep CRLF for Notepad / legacy tooling friendliness.
+*.ps1   text eol=crlf
+*.bat   text eol=crlf
+*.cmd   text eol=crlf
+
+# Binaries
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.zip   binary
+*.ppk   binary
+
+# Keep the license verbatim (no eol rewriting of the canonical text).
+LICENSE -text

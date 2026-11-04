@@ -1,6 +1,10 @@
 'use strict';
 
 /**
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ * Copyright (C) 2026 WorkBuddy AI
+ * Licensed under the GNU GPL v3 or later; see LICENSE.
+ *
  * MV3 service worker.
  * Owns the WebSocket to the local Bridge and relays messages between the
  * Bridge and the content script in the active AI tab.

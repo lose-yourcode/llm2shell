@@ -1,6 +1,10 @@
 /*
  * LLM2Shell content adapter (browser extension).
  * ----------------------------------------------
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ * Copyright (C) 2026 WorkBuddy AI
+ * Licensed under the GNU GPL v3 or later; see LICENSE.
+ *
  * Injected into ChatGPT / Gemini pages. It:
  *   1. Detects shell code blocks and adds Run / Run All / Copy / Select Terminal.
  *   2. Renders a floating output panel with Send Output / Send Selected / Copy.

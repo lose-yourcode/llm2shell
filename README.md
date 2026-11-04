@@ -1,5 +1,10 @@
 # LLM2Shell — AI Web Terminal Bridge (Browser Edition)
 
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/version-0.2.1-green.svg)](VERSION)
+[![Tests](https://img.shields.io/badge/tests-105%20passing-brightgreen.svg)](docs/TEST_REPORT.md)
+[![Platform](https://img.shields.io/badge/platform-Windows%2011%20%7C%20PowerShell-lightgrey.svg)](#quick-start-windows-11)
+
 > **Human-in-the-Loop AI Terminal Workspace.**
 > Chat with ChatGPT / Gemini in your normal browser, click **Run** on a shell command, watch it execute locally, then send the output straight back into the chat.
 
@@ -7,6 +12,15 @@ This is the **browser-based** implementation of task **AWT-001**, per the revise
 **no standalone desktop app — a browser extension plus a local Bridge service.**
 
 Target: **Windows 11 + PowerShell**, **ChatGPT** and **Gemini**.
+
+| Document | Purpose |
+|---|---|
+| [`CHANGELOG.md`](CHANGELOG.md) | Release history, newest first |
+| [`CONTRIBUTING.md`](CONTRIBUTING.md) | Dev setup, tests, commit conventions |
+| [`SECURITY.md`](SECURITY.md) | Threat model and how to report a vulnerability |
+| [`VERSION`](VERSION) | Authoritative version string |
+| [`LICENSE`](LICENSE) | GNU GPL v3.0 |
+| [`docs/`](docs/) | Architecture, SSH notes, test report, known issues, LLM prompt |
 
 ---
 
@@ -226,9 +240,14 @@ src/
   bridge/sshSession.js         persistent ssh2 connection (connect once, exec per command)
   bridge/sshConfig.js          ~/.ssh/config alias -> host/user/port/key
 scripts/run-tests.js     test launcher (workspace-local temp dir)
-test/                    Vitest suite (102 tests)
+test/                    Vitest suite (105 tests)
 docs/                    architecture, feasibility, test report, known issues, LLM prompt
 electron/ + renderer/    OPTIONAL legacy desktop shell (not the primary path)
+CHANGELOG.md             release history
+CONTRIBUTING.md          how to build, test and submit changes
+SECURITY.md              threat model + disclosure process
+VERSION                  authoritative version string
+LICENSE                  GNU General Public License v3.0
 ```
 
 ---
@@ -245,7 +264,7 @@ electron/ + renderer/    OPTIONAL legacy desktop shell (not the primary path)
 
 ## Verification status
 
-- ✅ **102 automated tests pass** (12 files), including **real PowerShell execution**, a
+- ✅ **105 automated tests pass** (12 files), including **real PowerShell execution**, a
   **WebSocket end-to-end Bridge test** (hello → run → output → result with exact exit codes),
   a **jsdom DOM test** for toolbar injection + input refill + panel resize/collapse, and
   **persistent SSH** tests.
@@ -268,4 +287,26 @@ no longer in `package.json`. Keep it for reference; the browser edition is what 
 
 ## License
 
-MIT.
+Copyright (C) 2026 WorkBuddy AI
+
+This program is free software: you can redistribute it and/or modify it under
+the terms of the **GNU General Public License** as published by the Free Software
+Foundation, either **version 3** of the License, or (at your option) any later
+version.
+
+This program is distributed in the hope that it will be useful, but **WITHOUT ANY
+WARRANTY**; without even the implied warranty of **MERCHANTABILITY** or **FITNESS
+FOR A PARTICULAR PURPOSE**. See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this
+program. If not, see <https://www.gnu.org/licenses/>.
+
+The full text is in [`LICENSE`](LICENSE). SPDX identifier:
+`GPL-3.0-or-later`.
+
+### A note on running commands
+
+This tool executes shell commands you approve, on your machine, with your
+privileges. The GPL's warranty disclaimer is not boilerplate here — please read
+[`SECURITY.md`](SECURITY.md) before pointing it at a production host.
+
