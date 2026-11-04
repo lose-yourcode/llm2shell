@@ -27,7 +27,7 @@ describe('quoteGuard', () => {
     expect(info).toBeTruthy();
     expect(info.quote).toBe('"');
     expect(info.line).toBe(1);
-    expect(info.column).toBe(12);
+    expect(info.column).toBe(14);
   });
 
   it('flags an unterminated single quote', () => {
@@ -75,7 +75,7 @@ describe('quoteGuard', () => {
     const cmd = 'ssh myserver "systemctl status';
     const msg = formatQuoteWarning(findUnterminatedQuote(cmd, 'powershell'), cmd);
     expect(msg).toContain('unterminated "');
-    expect(msg).toContain('line 1, column 12');
+    expect(msg).toContain('line 1, column 14');
     expect(msg).toContain('ssh myserver "systemctl status');
     expect(msg).toContain('Refusing to run');
   });
